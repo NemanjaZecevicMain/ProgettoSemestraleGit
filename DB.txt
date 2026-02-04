@@ -1,0 +1,293 @@
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ======================
+-- DROP (ordine sicuro)
+-- ======================
+DROP TABLE IF EXISTS import_batch_log;
+DROP TABLE IF EXISTS audit_log;
+DROP TABLE IF EXISTS signature_confirmation_log;
+DROP TABLE IF EXISTS medical_certificate_log;
+DROP TABLE IF EXISTS delay_log;
+DROP TABLE IF EXISTS absence_log;
+DROP TABLE IF EXISTS user_log;
+DROP TABLE IF EXISTS classroom_log;
+
+DROP TABLE IF EXISTS import_batch;
+DROP TABLE IF EXISTS signature_confirmation;
+DROP TABLE IF EXISTS medical_certificate;
+DROP TABLE IF EXISTS delay;
+DROP TABLE IF EXISTS absence;
+DROP TABLE IF EXISTS user;
+DROP TABLE IF EXISTS classroom;
+
+-- ======================
+-- CLASSROOM
+-- ======================
+CREATE TABLE classroom (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    year INT NOT NULL,
+    section VARCHAR(10) NOT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL
+) ENGINE=InnoDB;
+
+-- ======================
+-- USER
+-- ======================
+CREATE TABLE user (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    classroom_id BIGINT UNSIGNED NULL,
+    name VARCHAR(150) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('STUDENT','TEACHER','ADMIN','CAPOLAB','DIREZIONE') NOT NULL,
+    is_minor BOOLEAN DEFAULT FALSE,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    CONSTRAINT fk_user_classroom
+        FOREIGN KEY (classroom_id)
+        REFERENCES classroom(id)
+        ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ======================
+-- ABSENCE (con approvazione)
+-- ======================
+CREATE TABLE absence (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    student_id BIGINT UNSIGNED NOT NULL,
+    date_from DATE NOT NULL,
+    date_to DATE NOT NULL,
+    reason ENUM('MALATTIA','ALTRO') NOT NULL,
+    status ENUM(
+        'PENDING',
+        'WAITING_CERT',
+        'WAITING_SIGNATURE',
+        'JUSTIFIED',
+        'UNJUSTIFIED'
+    ) NOT NULL,
+    hours_assigned INT NULL,
+    note TEXT NULL,
+
+    -- APPROVAZIONE (capolab / direzione)
+    is_approved BOOLEAN NULL, -- NULL=non valutata, 1=approvata, 0=respinta
+    approved_by_user_id BIGINT UNSIGNED NULL,
+    approved_at DATETIME NULL,
+
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+
+    CONSTRAINT fk_absence_student
+        FOREIGN KEY (student_id)
+        REFERENCES user(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_absence_approved_by
+        FOREIGN KEY (approved_by_user_id)
+        REFERENCES user(id)
+        ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ======================
+-- DELAY
+-- ======================
+CREATE TABLE delay (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    student_id BIGINT UNSIGNED NOT NULL,
+    created_by_teacher_id BIGINT UNSIGNED NOT NULL,
+    date DATE NOT NULL,
+    minutes INT NOT NULL,
+    note TEXT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    CONSTRAINT fk_delay_student
+        FOREIGN KEY (student_id)
+        REFERENCES user(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_delay_teacher
+        FOREIGN KEY (created_by_teacher_id)
+        REFERENCES user(id)
+        ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+-- ======================
+-- MEDICAL_CERTIFICATE
+-- ======================
+CREATE TABLE medical_certificate (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    absence_id BIGINT UNSIGNED NOT NULL UNIQUE,
+    file_path VARCHAR(255) NOT NULL,
+    uploaded_at DATETIME NULL,
+    deadline_at DATETIME NULL,
+    validated_by_teacher_id BIGINT UNSIGNED NULL,
+    status ENUM('UPLOADED','ACCEPTED','REJECTED','EXPIRED') NOT NULL,
+    note TEXT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    CONSTRAINT fk_medical_absence
+        FOREIGN KEY (absence_id)
+        REFERENCES absence(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_medical_teacher
+        FOREIGN KEY (validated_by_teacher_id)
+        REFERENCES user(id)
+        ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ======================
+-- SIGNATURE_CONFIRMATION
+-- ======================
+CREATE TABLE signature_confirmation (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    absence_id BIGINT UNSIGNED NOT NULL UNIQUE,
+    signer_name VARCHAR(150) NOT NULL,
+    signer_email VARCHAR(150) NOT NULL,
+    token_hash VARCHAR(255) NOT NULL,
+    expires_at DATETIME NULL,
+    signed_at DATETIME NULL,
+    signature_path VARCHAR(255) NULL,
+    ip_address VARCHAR(45) NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    CONSTRAINT fk_signature_absence
+        FOREIGN KEY (absence_id)
+        REFERENCES absence(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ======================
+-- AUDIT_LOG (generico)
+-- ======================
+CREATE TABLE audit_log (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    actor_id BIGINT UNSIGNED NULL,
+    action VARCHAR(100) NOT NULL,
+    entity_type VARCHAR(100) NOT NULL,
+    entity_id BIGINT UNSIGNED NOT NULL,
+    metadata JSON NULL,
+    created_at DATETIME NOT NULL,
+    CONSTRAINT fk_audit_actor
+        FOREIGN KEY (actor_id)
+        REFERENCES user(id)
+        ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ======================
+-- IMPORT_BATCH
+-- ======================
+CREATE TABLE import_batch (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    classroom_id BIGINT UNSIGNED NOT NULL,
+    imported_by BIGINT UNSIGNED NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    imported_at DATETIME NULL,
+    status ENUM('OK','PARTIAL','FAILED') NOT NULL,
+    created_users_count INT DEFAULT 0,
+    created_classes_count INT DEFAULT 0,
+    errors JSON NULL,
+    created_at DATETIME NOT NULL,
+    CONSTRAINT fk_import_classroom
+        FOREIGN KEY (classroom_id)
+        REFERENCES classroom(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_import_user
+        FOREIGN KEY (imported_by)
+        REFERENCES user(id)
+        ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+-- =========================================================
+-- LOG TABLES (copia + metadati di log)
+-- =========================================================
+
+-- helper: FK logged_by -> user (se user viene cancellato, SET NULL)
+-- NB: nelle _log NON metto FK verso entità snapshot (es. student_id) per non bloccare la storia.
+
+CREATE TABLE classroom_log (
+    log_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    operation ENUM('INSERT','UPDATE','DELETE') NOT NULL,
+    logged_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    logged_by_user_id BIGINT UNSIGNED NULL,
+
+    id BIGINT UNSIGNED NULL,
+    name VARCHAR(100) NULL,
+    year INT NULL,
+    section VARCHAR(10) NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+
+    CONSTRAINT fk_classroom_log_actor
+        FOREIGN KEY (logged_by_user_id) REFERENCES user(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE user_log (
+    log_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    operation ENUM('INSERT','UPDATE','DELETE') NOT NULL,
+    logged_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    logged_by_user_id BIGINT UNSIGNED NULL,
+
+    id BIGINT UNSIGNED NULL,
+    classroom_id BIGINT UNSIGNED NULL,
+    name VARCHAR(150) NULL,
+    email VARCHAR(150) NULL,
+    password_hash VARCHAR(255) NULL,
+    role ENUM('STUDENT','TEACHER','ADMIN','CAPOLAB','DIREZIONE') NULL,
+    is_minor BOOLEAN NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+
+    CONSTRAINT fk_user_log_actor
+        FOREIGN KEY (logged_by_user_id) REFERENCES user(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE absence_log (
+    log_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    operation ENUM('INSERT','UPDATE','DELETE') NOT NULL,
+    logged_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    logged_by_user_id BIGINT UNSIGNED NULL,
+
+    id BIGINT UNSIGNED NULL,
+    student_id BIGINT UNSIGNED NULL,
+    date_from DATE NULL,
+    date_to DATE NULL,
+    reason ENUM('MALATTIA','ALTRO') NULL,
+    status ENUM('PENDING','WAITING_CERT','WAITING_SIGNATURE','JUSTIFIED','UNJUSTIFIED') NULL,
+    hours_assigned INT NULL,
+    note TEXT NULL,
+
+    is_approved BOOLEAN NULL,
+    approved_by_user_id BIGINT UNSIGNED NULL,
+    approved_at DATETIME NULL,
+
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+
+    CONSTRAINT fk_absence_log_actor
+        FOREIGN KEY (logged_by_user_id) REFERENCES user(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE delay_log (
+    log_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    operation ENUM('INSERT','UPDATE','DELETE') NOT NULL,
+    logged_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    logged_by_user_id BIGINT UNSIGNED NULL,
+
+    id BIGINT UNSIGNED NULL,
+    student_id BIGINT UNSIGNED NULL,
+    created_by_teacher_id BIGINT UNSIGNED NULL,
+    date DATE NULL,
+    minutes INT NULL,
+    note TEXT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+
+    CONSTRAINT fk_delay_log_actor
+        FOREIGN KEY (logged_by_user_id) REFERENCES user(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE medical_certificate_log (
+    log_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    operation ENUM('INSERT','UPDATE','DELETE') NOT NULL,
+    logged_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    logged_by_user_id BIGINT UNSIGNED NULL,
