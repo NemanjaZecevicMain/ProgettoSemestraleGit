@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\StudentAbsenceController;
+use App\Http\Controllers\Student\StudentDelayController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -18,6 +20,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::patch('/settings/description', [SettingsController::class, 'updateDescription'])->name('settings.description.update');
+    Route::get('/assenze', [StudentAbsenceController::class, 'index'])->name('student.absences.index');
+    Route::get('/assenze/{id}', [StudentAbsenceController::class, 'show'])->name('student.absences.show');
+    Route::get('/ritardi', [StudentDelayController::class, 'index'])->name('student.delays.index');
+    Route::get('/ritardi/{id}', [StudentDelayController::class, 'show'])->name('student.delays.show');
+    Route::patch('/ritardi/{id}/firma', [StudentDelayController::class, 'sign'])->name('student.delays.sign');
 });
 
 require __DIR__.'/auth.php';

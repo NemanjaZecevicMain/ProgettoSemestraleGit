@@ -1,0 +1,7 @@
+modificare db in modo da fare si che lo storico sia memorizzato tramite tabelle uguali di log
+
+modificare use case in modo da aggiungere la parte di segretariato e direzione
+
+modificare diagramma di flusso, farlo molto piu completo e con la suddivisione dei ruoli
+
+mettere a posto logica pagine in modo che non assomigli o sovrapponga troppo le funzionalità di gagi

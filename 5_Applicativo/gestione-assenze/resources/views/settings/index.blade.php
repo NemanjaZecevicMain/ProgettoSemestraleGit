@@ -10,7 +10,7 @@
     $role = $roleLabels[$user->role] ?? $user->role;
     $classroomLabel = $user->classroom
         ? $user->classroom->year . $user->classroom->name . ' ' . $user->classroom->section
-        : '—';
+        : '-';
 @endphp
 
 <x-app-sidebar>

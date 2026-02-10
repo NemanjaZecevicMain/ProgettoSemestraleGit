@@ -35,4 +35,14 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Classroom::class, 'classroom_id');
     }
+
+    public function absences()
+    {
+        return $this->hasMany(Absence::class, 'student_id');
+    }
+
+    public function delays()
+    {
+        return $this->hasMany(Delay::class, 'student_id');
+    }
 }
