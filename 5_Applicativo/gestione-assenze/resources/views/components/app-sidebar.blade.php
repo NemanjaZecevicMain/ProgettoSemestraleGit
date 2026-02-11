@@ -19,6 +19,7 @@
             $isAbsences = request()->routeIs('student.absences.*');
             $isDelays = request()->routeIs('student.delays.*');
             $isSettings = request()->routeIs('settings.*');
+            $isSignatures = request()->routeIs('student.signatures.*');
             $isStudent = auth()->user()?->role === 'STUDENT';
             $user = auth()->user();
         @endphp
@@ -69,13 +70,15 @@
                             </svg>
                             Impostazioni
                         </a>
-                        <a href="#" class="{{ $inactiveLink }}">
-                            <svg class="{{ $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
-                                <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                <path d="M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Stato firme
-                        </a>
+                        @if ($isStudent)
+                            <a href="{{ route('student.signatures.index') }}" class="{{ $isSignatures ? $activeLink : $inactiveLink }}">
+                                <svg class="{{ $isSignatures ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
+                                    <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    <path d="M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Stato firme
+                            </a>
+                        @endif
                     </nav>
 
                     <div class="px-3 py-4 border-t border-blue-700/50">

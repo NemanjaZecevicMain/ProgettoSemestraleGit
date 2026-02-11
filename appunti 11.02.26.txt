@@ -1,0 +1,13 @@
+chiede valsangiacomo se ha bisogno di assegnare asssenze/ritardi nel sito o basta gagi
+
+chiarire discorso firma manuale o basta click (dato che gia si fa login e si prende consapevolezza)
+
+gestire ritardi con assenza
+
+pensare come gestire assenze che diventano arbitrarie
+
+segretariato vede assenze  ritardi di tutti e non solo di proprie classi come il docenete -> capolaboratorio in grado di approvare assenze <= 1 giorno
+
+pensare a coerenza nomi tabelle sql (plurale)
+
+tolgo campo ammnistratore in roles e aggiungo nei permessi
