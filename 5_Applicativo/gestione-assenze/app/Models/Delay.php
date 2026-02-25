@@ -17,6 +17,7 @@ class Delay extends Model
         'is_signed',
         'signed_at',
         'signed_by_user_id',
+        'signature_file_path',
     ];
 
     protected $casts = [

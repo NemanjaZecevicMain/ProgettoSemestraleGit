@@ -23,7 +23,11 @@ class StudentSignatureController extends Controller
         $summary = [
             'delays_unsigned' => (clone $delaysQuery)->where('is_signed', false)->count(),
             'delays_signed' => (clone $delaysQuery)->where('is_signed', true)->count(),
-            'absences_waiting_signature' => (clone $absencesQuery)->where('status', 'WAITING_SIGNATURE')->count(),
+            'absences_unsigned' => (clone $absencesQuery)
+                ->where('status', 'WAITING_SIGNATURE')
+                ->where('is_signed', false)
+                ->count(),
+            'absences_signed' => (clone $absencesQuery)->where('is_signed', true)->count(),
         ];
 
         $delays = (clone $delaysQuery)

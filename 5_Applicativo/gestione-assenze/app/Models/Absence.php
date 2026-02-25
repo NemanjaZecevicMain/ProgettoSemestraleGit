@@ -19,6 +19,12 @@ class Absence extends Model
         'is_approved',
         'approved_by_user_id',
         'approved_at',
+        'is_signed',
+        'signed_at',
+        'signed_by_user_id',
+        'signature_file_path',
+        'time_from',
+        'time_to',
     ];
 
     protected $casts = [
@@ -26,10 +32,24 @@ class Absence extends Model
         'date_to' => 'date',
         'approved_at' => 'datetime',
         'is_approved' => 'boolean',
+        'signed_at' => 'datetime',
+        'is_signed' => 'boolean',
+        'time_from' => 'array',
+        'time_to' => 'array',
     ];
 
     public function student()
     {
         return $this->belongsTo(User::class, 'student_id');
+    }
+
+    public function certificates()
+    {
+        return $this->hasMany(MedicalCertificate::class, 'absence_id');
+    }
+
+    public function signedBy()
+    {
+        return $this->belongsTo(User::class, 'signed_by_user_id');
     }
 }

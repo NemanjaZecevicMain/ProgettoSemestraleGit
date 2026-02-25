@@ -41,14 +41,6 @@
                     <div class="text-xs uppercase tracking-wider text-slate-500">Minuti</div>
                     <div class="mt-2 text-sm font-medium text-slate-900">{{ $delay->minutes }}</div>
                 </div>
-                <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                    <div class="text-xs uppercase tracking-wider text-slate-500">Inserito da</div>
-                    <div class="mt-2 text-sm font-medium text-slate-900">-</div>
-                </div>
-                <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                    <div class="text-xs uppercase tracking-wider text-slate-500">Studente firmatario</div>
-                    <div class="mt-2 text-sm font-medium text-slate-900">{{ $delay->signed_by_user_id ?: '-' }}</div>
-                </div>
             </div>
 
             <div class="mt-6 rounded-xl border border-slate-100 bg-slate-50 p-4">
@@ -58,17 +50,48 @@
                 </div>
             </div>
 
-            @if (!$delay->is_signed)
-                <div class="mt-6">
-                    <form method="POST" action="{{ route('student.delays.sign', $delay->id) }}">
+            <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-900">Firma</h2>
+                        <p class="text-sm text-slate-500">Carica o sostituisci il PDF della firma.</p>
+                    </div>
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+                    <form method="POST" action="{{ route('student.delays.sign', $delay->id) }}" enctype="multipart/form-data" class="rounded-xl border border-slate-200 bg-white p-4">
                         @csrf
                         @method('PATCH')
-                        <button type="submit" class="inline-flex items-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800">
-                            Firma
-                        </button>
+                        <div class="text-xs uppercase tracking-wider text-slate-500">PDF firma</div>
+                        <div class="mt-3 flex flex-col gap-3">
+                            <input type="file" name="signature_file" accept="application/pdf" class="block text-sm text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:text-slate-700" required>
+                            <button type="submit" class="inline-flex items-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800">
+                                {{ $delay->signature_file_path ? 'Sostituisci PDF' : 'Carica PDF' }}
+                            </button>
+                        </div>
                     </form>
+                    <div class="rounded-xl border border-slate-200 bg-white p-4">
+                        <div class="text-xs uppercase tracking-wider text-slate-500">Anteprima</div>
+                        @if ($delay->signature_file_path)
+                            <iframe
+                                src="{{ route('student.delays.signature.download', $delay->id) }}"
+                                class="mt-3 h-64 w-full rounded border border-slate-200 bg-white"
+                            ></iframe>
+                            <div class="mt-3">
+                                <a href="{{ route('student.delays.signature.download', $delay->id) }}" class="text-sm font-medium text-blue-700 hover:text-blue-900" download>
+                                    Scarica PDF
+                                </a>
+                                <span class="ml-2 text-xs text-slate-500">Se l'anteprima non si vede, usa il download.</span>
+                            </div>
+                        @else
+                            <div class="mt-3 flex h-64 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-500">
+                                Nessun PDF caricato
+                            </div>
+                        @endif
+                    </div>
                 </div>
-            @endif
+            </div>
+
         </div>
     </div>
 </x-app-sidebar>

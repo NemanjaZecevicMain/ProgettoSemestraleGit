@@ -54,8 +54,8 @@
                                     <th class="px-4 py-3 text-left font-medium">Data</th>
                                     <th class="px-4 py-3 text-left font-medium">Minuti</th>
                                     <th class="px-4 py-3 text-left font-medium">Nota</th>
-                                    <th class="px-4 py-3 text-left font-medium">Inserito da</th>
                                     <th class="px-4 py-3 text-left font-medium">Firma</th>
+                                    <th class="px-4 py-3 text-right font-medium">PDF</th>
                                     <th class="px-4 py-3 text-right font-medium">Azione</th>
                                 </tr>
                             </thead>
@@ -71,7 +71,6 @@
                                                 -
                                             @endif
                                         </td>
-                                        <td class="px-4 py-3 text-slate-700">-</td>
                                         <td class="px-4 py-3">
                                             @if ($delay->is_signed)
                                                 <div class="flex flex-col gap-1">
@@ -89,18 +88,36 @@
                                             @endif
                                         </td>
                                         <td class="px-4 py-3 text-right">
+                                            @if ($delay->signature_file_path)
+                                                <div class="flex justify-end">
+                                                    <iframe
+                                                        src="{{ route('student.delays.signature.download', $delay->id) }}"
+                                                        class="h-24 w-32 rounded border border-slate-200 bg-white"
+                                                    ></iframe>
+                                                </div>
+                                            @else
+                                                <span class="text-xs text-slate-400">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 text-right">
                                             <div class="inline-flex items-center gap-3">
                                                 <a href="{{ route('student.delays.show', $delay->id) }}" class="text-sm font-medium text-blue-700 hover:text-blue-900">Apri</a>
+                                                @if ($delay->signature_file_path)
+                                                    <a href="{{ route('student.delays.signature.download', $delay->id) }}" class="text-xs font-medium text-slate-600 hover:text-slate-900" download>
+                                                        Scarica PDF
+                                                    </a>
+                                                @endif
                                                 @if (!$delay->is_signed)
-                                                    <form method="POST" action="{{ route('student.delays.sign', $delay->id) }}">
+                                                    <form method="POST" action="{{ route('student.delays.sign', $delay->id) }}" enctype="multipart/form-data" class="inline-flex items-center gap-2">
                                                         @csrf
                                                         @method('PATCH')
                                                         <input type="hidden" name="firmato" value="{{ $filters['firmato'] ?? 'all' }}">
                                                         <input type="hidden" name="date_from" value="{{ $filters['date_from'] ?? '' }}">
                                                         <input type="hidden" name="date_to" value="{{ $filters['date_to'] ?? '' }}">
                                                         <input type="hidden" name="page" value="{{ request('page', 1) }}">
+                                                        <input type="file" name="signature_file" accept="application/pdf" class="block w-44 text-xs text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:text-slate-700" required>
                                                         <button type="submit" class="inline-flex items-center rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-800">
-                                                            Firma
+                                                            Carica PDF
                                                         </button>
                                                     </form>
                                                 @endif
@@ -136,19 +153,25 @@
                                     @if ($delay->signed_at)
                                         <span class="text-xs text-slate-500">{{ $delay->signed_at->format('d.m.Y H:i') }}</span>
                                     @endif
+                                    @if ($delay->signature_file_path)
+                                        <a href="{{ route('student.delays.signature.download', $delay->id) }}" class="text-xs font-medium text-slate-600 hover:text-slate-900" download>
+                                            Scarica PDF
+                                        </a>
+                                    @endif
                                 @else
                                     <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
                                         Da firmare
                                     </span>
-                                    <form method="POST" action="{{ route('student.delays.sign', $delay->id) }}">
+                                    <form method="POST" action="{{ route('student.delays.sign', $delay->id) }}" enctype="multipart/form-data" class="flex items-center gap-2">
                                         @csrf
                                         @method('PATCH')
                                         <input type="hidden" name="firmato" value="{{ $filters['firmato'] ?? 'all' }}">
                                         <input type="hidden" name="date_from" value="{{ $filters['date_from'] ?? '' }}">
                                         <input type="hidden" name="date_to" value="{{ $filters['date_to'] ?? '' }}">
                                         <input type="hidden" name="page" value="{{ request('page', 1) }}">
+                                        <input type="file" name="signature_file" accept="application/pdf" class="block w-40 text-xs text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:text-slate-700" required>
                                         <button type="submit" class="inline-flex items-center rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-800">
-                                            Firma
+                                            Carica PDF
                                         </button>
                                     </form>
                                 @endif

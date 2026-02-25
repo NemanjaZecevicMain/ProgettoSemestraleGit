@@ -20,6 +20,8 @@
             $isDelays = request()->routeIs('student.delays.*');
             $isSettings = request()->routeIs('settings.*');
             $isSignatures = request()->routeIs('student.signatures.*');
+            $isReports = request()->routeIs('student.reports.*');
+            $isCertificates = request()->routeIs('student.certificates.*');
             $isStudent = auth()->user()?->role === 'STUDENT';
             $user = auth()->user();
         @endphp
@@ -56,12 +58,19 @@
                                 I miei ritardi
                             </a>
                         @endif
-                        <a href="#" class="{{ $inactiveLink }}">
+                        <a href="{{ route('student.certificates.index') }}" class="{{ $isCertificates ? $activeLink : $inactiveLink }}">
                             <svg class="{{ $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
                                 <rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
                                 <path d="M8 7h8M8 11h8M8 15h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             </svg>
                             Certificati
+                        </a>
+                        <a href="{{ route('student.reports.index') }}" class="{{ $isReports ? $activeLink : $inactiveLink }}">
+                            <svg class="{{ $isReports ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
+                                <path d="M4 4h16v16H4z" stroke="currentColor" stroke-width="2"/>
+                                <path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            Report mensili
                         </a>
                         <a href="{{ route('settings.index') }}" class="{{ $isSettings ? $activeLink : $inactiveLink }}">
                             <svg class="{{ $isSettings ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">

@@ -24,20 +24,20 @@
                         </svg>
                         Dashboard
                     </a>
-                    <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-blue-100 hover:bg-blue-800/70 hover:text-white">
+                    <a href="{{ route('student.absences.index') }}" class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-blue-100 hover:bg-blue-800/70 hover:text-white">
                         <svg class="h-5 w-5 text-blue-300 group-hover:text-white" viewBox="0 0 24 24" fill="none">
                             <path d="M7 4h10a2 2 0 0 1 2 2v14l-7-3-7 3V6a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="2"/>
                         </svg>
                         Le mie assenze
                     </a>
-                    <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-blue-100 hover:bg-blue-800/70 hover:text-white">
+                    <a href="{{ route('student.delays.index') }}" class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-blue-100 hover:bg-blue-800/70 hover:text-white">
                         <svg class="h-5 w-5 text-blue-300 group-hover:text-white" viewBox="0 0 24 24" fill="none">
                             <path d="M12 7v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
                         </svg>
                         I miei ritardi
                     </a>
-                    <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-blue-100 hover:bg-blue-800/70 hover:text-white">
+                    <a href="{{ route('student.certificates.index') }}" class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-blue-100 hover:bg-blue-800/70 hover:text-white">
                         <svg class="h-5 w-5 text-blue-300 group-hover:text-white" viewBox="0 0 24 24" fill="none">
                             <rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
                             <path d="M8 7h8M8 11h8M8 15h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -51,7 +51,14 @@
                         </svg>
                         Impostazioni
                     </a>
-                    <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-blue-100 hover:bg-blue-800/70 hover:text-white">
+                    <a href="{{ route('student.reports.index') }}" class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-blue-100 hover:bg-blue-800/70 hover:text-white">
+                        <svg class="h-5 w-5 text-blue-300 group-hover:text-white" viewBox="0 0 24 24" fill="none">
+                            <path d="M4 4h16v16H4z" stroke="currentColor" stroke-width="2"/>
+                            <path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Report mensili
+                    </a>
+                    <a href="{{ route('student.signatures.index') }}" class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-blue-100 hover:bg-blue-800/70 hover:text-white">
                         <svg class="h-5 w-5 text-blue-300 group-hover:text-white" viewBox="0 0 24 24" fill="none">
                             <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             <path d="M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

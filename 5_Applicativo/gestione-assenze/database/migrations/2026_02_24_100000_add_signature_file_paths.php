@@ -1,0 +1,38 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('absence', function (Blueprint $table) {
+            if (!Schema::hasColumn('absence', 'signature_file_path')) {
+                $table->string('signature_file_path')->nullable()->after('signed_by_user_id');
+            }
+        });
+
+        Schema::table('delay', function (Blueprint $table) {
+            if (!Schema::hasColumn('delay', 'signature_file_path')) {
+                $table->string('signature_file_path')->nullable()->after('signed_by_user_id');
+            }
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('absence', function (Blueprint $table) {
+            if (Schema::hasColumn('absence', 'signature_file_path')) {
+                $table->dropColumn('signature_file_path');
+            }
+        });
+
+        Schema::table('delay', function (Blueprint $table) {
+            if (Schema::hasColumn('delay', 'signature_file_path')) {
+                $table->dropColumn('signature_file_path');
+            }
+        });
+    }
+};

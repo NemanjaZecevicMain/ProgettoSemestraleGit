@@ -17,7 +17,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div class="text-xs uppercase tracking-wider text-slate-500">Ritardi da firmare</div>
                 <div class="mt-2 text-2xl font-semibold text-amber-700">{{ $summary['delays_unsigned'] }}</div>
@@ -29,8 +29,13 @@
                 <div class="text-xs text-slate-400">Totale</div>
             </div>
             <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div class="text-xs uppercase tracking-wider text-slate-500">Assenze in attesa firma</div>
-                <div class="mt-2 text-2xl font-semibold text-amber-700">{{ $summary['absences_waiting_signature'] }}</div>
+                <div class="text-xs uppercase tracking-wider text-slate-500">Assenze da firmare</div>
+                <div class="mt-2 text-2xl font-semibold text-amber-700">{{ $summary['absences_unsigned'] }}</div>
+                <div class="text-xs text-slate-400">Totale</div>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="text-xs uppercase tracking-wider text-slate-500">Assenze firmate</div>
+                <div class="mt-2 text-2xl font-semibold text-emerald-700">{{ $summary['absences_signed'] }}</div>
                 <div class="text-xs text-slate-400">Totale</div>
             </div>
         </div>
@@ -58,6 +63,7 @@
                                     <th class="px-4 py-3 text-left font-medium">Minuti</th>
                                     <th class="px-4 py-3 text-left font-medium">Firma</th>
                                     <th class="px-4 py-3 text-left font-medium">Data firma</th>
+                                    <th class="px-4 py-3 text-right font-medium">PDF</th>
                                     <th class="px-4 py-3 text-right font-medium">Dettaglio</th>
                                 </tr>
                             </thead>
@@ -79,6 +85,18 @@
                                         </td>
                                         <td class="px-4 py-3 text-slate-700">
                                             {{ $delay->signed_at ? $delay->signed_at->format('d.m.Y H:i') : '-' }}
+                                        </td>
+                                        <td class="px-4 py-3 text-right">
+                                            @if ($delay->signature_file_path)
+                                                <div class="flex justify-end">
+                                                    <iframe
+                                                        src="{{ route('student.delays.signature.download', $delay->id) }}"
+                                                        class="h-20 w-28 rounded border border-slate-200 bg-white"
+                                                    ></iframe>
+                                                </div>
+                                            @else
+                                                <span class="text-xs text-slate-400">-</span>
+                                            @endif
                                         </td>
                                         <td class="px-4 py-3 text-right">
                                             <a href="{{ route('student.delays.show', $delay->id) }}" class="text-sm font-medium text-blue-700 hover:text-blue-900">Apri</a>
@@ -107,6 +125,12 @@
                                     </span>
                                     @if ($delay->signed_at)
                                         <span class="text-slate-500">{{ $delay->signed_at->format('d.m.Y H:i') }}</span>
+                                    @endif
+                                    @if ($delay->signature_file_path)
+                                        <iframe
+                                            src="{{ route('student.delays.signature.download', $delay->id) }}"
+                                            class="h-20 w-28 rounded border border-slate-200 bg-white"
+                                        ></iframe>
                                     @endif
                                 @else
                                     <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 font-medium text-amber-800">
@@ -142,6 +166,8 @@
                                     <th class="px-4 py-3 text-left font-medium">Periodo</th>
                                     <th class="px-4 py-3 text-left font-medium">Motivo</th>
                                     <th class="px-4 py-3 text-left font-medium">Stato</th>
+                                    <th class="px-4 py-3 text-left font-medium">Firma</th>
+                                    <th class="px-4 py-3 text-right font-medium">PDF</th>
                                     <th class="px-4 py-3 text-right font-medium">Dettaglio</th>
                                 </tr>
                             </thead>
@@ -160,6 +186,36 @@
                                             <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium {{ $statusClass }}">
                                                 {{ $statusLabel }}
                                             </span>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            @if ($absence->is_signed)
+                                                <div class="flex flex-col gap-1">
+                                                    <span class="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                                                        Firmato
+                                                    </span>
+                                                    @if ($absence->signed_at)
+                                                        <span class="text-xs text-slate-500">{{ $absence->signed_at->format('d.m.Y H:i') }}</span>
+                                                    @endif
+                                                </div>
+                                            @elseif ($absence->status === 'WAITING_SIGNATURE')
+                                                <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
+                                                    Da firmare
+                                                </span>
+                                            @else
+                                                <span class="text-xs text-slate-400">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 text-right">
+                                            @if ($absence->signature_file_path)
+                                                <div class="flex justify-end">
+                                                    <iframe
+                                                        src="{{ route('student.absences.signature.download', $absence->id) }}"
+                                                        class="h-20 w-28 rounded border border-slate-200 bg-white"
+                                                    ></iframe>
+                                                </div>
+                                            @else
+                                                <span class="text-xs text-slate-400">-</span>
+                                            @endif
                                         </td>
                                         <td class="px-4 py-3 text-right">
                                             <a href="{{ route('student.absences.show', $absence->id) }}" class="text-sm font-medium text-blue-700 hover:text-blue-900">Apri</a>
@@ -191,6 +247,24 @@
                                 <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium {{ $statusClass }}">
                                     {{ $statusLabel }}
                                 </span>
+                                @if ($absence->is_signed)
+                                    <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                                        Firmato
+                                    </span>
+                                    @if ($absence->signed_at)
+                                        <span class="text-slate-500">{{ $absence->signed_at->format('d.m.Y H:i') }}</span>
+                                    @endif
+                                    @if ($absence->signature_file_path)
+                                        <iframe
+                                            src="{{ route('student.absences.signature.download', $absence->id) }}"
+                                            class="mt-2 h-20 w-28 rounded border border-slate-200 bg-white"
+                                        ></iframe>
+                                    @endif
+                                @elseif ($absence->status === 'WAITING_SIGNATURE')
+                                    <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
+                                        Da firmare
+                                    </span>
+                                @endif
                             </div>
                         </div>
                     @endforeach
