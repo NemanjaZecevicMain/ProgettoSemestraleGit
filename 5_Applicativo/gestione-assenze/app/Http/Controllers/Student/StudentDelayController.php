@@ -4,10 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\Delay;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\View\View;
 
 class StudentDelayController extends Controller
@@ -70,70 +67,6 @@ class StudentDelayController extends Controller
 
         return view('student.delays.show', [
             'delay' => $delay,
-        ]);
-    }
-
-    public function sign(Request $request, int $id): RedirectResponse
-    {
-        $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
-            abort(403);
-        }
-
-        $delay = Delay::query()
-            ->where('id', $id)
-            ->where('student_id', $user->id)
-            ->firstOrFail();
-
-        $validated = $request->validate([
-            'signature_file' => ['required', 'file', 'mimes:pdf', 'max:4096'],
-        ], [
-            'signature_file.required' => 'Carica un file PDF per firmare.',
-            'signature_file.mimes' => 'Il file deve essere un PDF.',
-            'signature_file.max' => 'Il file non puo superare 4MB.',
-        ]);
-
-        if ($delay->signature_file_path) {
-            Storage::disk('public')->delete($delay->signature_file_path);
-        }
-
-        $path = $validated['signature_file']->store('signatures/delays', 'public');
-
-        $delay->is_signed = true;
-        $delay->signed_at = now();
-        $delay->signed_by_user_id = $user->id;
-        $delay->signature_file_path = $path;
-        $delay->save();
-
-        return redirect()
-            ->route('student.delays.index', $request->only(['firmato', 'date_from', 'date_to', 'page']))
-            ->with('status', $delay->wasChanged('signature_file_path') ? 'PDF firma aggiornato.' : 'Ritardo firmato con successo.');
-    }
-
-    public function downloadSignature(Request $request, int $id): Response
-    {
-        $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
-            abort(403);
-        }
-
-        $delay = Delay::query()
-            ->where('id', $id)
-            ->where('student_id', $user->id)
-            ->firstOrFail();
-
-        if (!$delay->signature_file_path) {
-            abort(404);
-        }
-
-        $disk = Storage::disk('public');
-        if (!$disk->exists($delay->signature_file_path)) {
-            abort(404);
-        }
-
-        $absolutePath = $disk->path($delay->signature_file_path);
-        return response()->file($absolutePath, [
-            'Content-Type' => 'application/pdf',
         ]);
     }
 

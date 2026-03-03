@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\View\View;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Str;
+use App\Models\SignatureConfirmation;
 
 class StudentAbsenceController extends Controller
 {
@@ -171,7 +173,7 @@ class StudentAbsenceController extends Controller
         $absence = Absence::query()
             ->where('id', $id)
             ->where('student_id', $user->id)
-            ->with('certificates')
+            ->with('certificates', 'signatureConfirmation')
             ->firstOrFail();
 
         return view('student.absences.show', [
@@ -261,7 +263,7 @@ class StudentAbsenceController extends Controller
         ]);
     }
 
-    public function sign(Request $request, int $id): RedirectResponse
+    public function generateSignatureLink(Request $request, int $id): RedirectResponse
     {
         $user = $request->user();
         if (!$user || $user->role !== 'STUDENT') {
@@ -273,35 +275,35 @@ class StudentAbsenceController extends Controller
             ->where('student_id', $user->id)
             ->firstOrFail();
 
-        if (!$absence->is_signed && $absence->status !== 'WAITING_SIGNATURE') {
+        if ($absence->is_signed || $absence->status !== 'WAITING_SIGNATURE') {
             return redirect()
-                ->route('student.absences.index', $request->only(['status', 'date_from', 'date_to', 'page']))
+                ->route('student.absences.show', $absence->id)
                 ->with('status', 'Assenza non firmabile.');
         }
 
-        $validated = $request->validate([
-            'signature_file' => ['required', 'file', 'mimes:pdf', 'max:4096'],
-        ], [
-            'signature_file.required' => 'Carica un file PDF per firmare.',
-            'signature_file.mimes' => 'Il file deve essere un PDF.',
-            'signature_file.max' => 'Il file non puo superare 4MB.',
-        ]);
+        $token = Str::random(64);
+        $tokenHash = hash('sha256', $token);
+        $expiresAt = now()->addDays(7);
 
-        if ($absence->signature_file_path) {
-            Storage::disk('public')->delete($absence->signature_file_path);
-        }
+        SignatureConfirmation::updateOrCreate(
+            ['absence_id' => $absence->id],
+            [
+                'token_hash' => $tokenHash,
+                'expires_at' => $expiresAt,
+                'signed_at' => null,
+                'signature_path' => null,
+                'signer_name' => null,
+                'signer_email' => null,
+                'ip_address' => null,
+            ]
+        );
 
-        $path = $validated['signature_file']->store('signatures/absences', 'public');
-
-        $absence->is_signed = true;
-        $absence->signed_at = now();
-        $absence->signed_by_user_id = $user->id;
-        $absence->signature_file_path = $path;
-        $absence->save();
+        $link = route('public.absences.signature.show', $token);
 
         return redirect()
-            ->route('student.absences.index', $request->only(['status', 'date_from', 'date_to', 'page']))
-            ->with('status', $absence->wasChanged('signature_file_path') ? 'PDF firma aggiornato.' : 'Assenza firmata con successo.');
+            ->route('student.absences.show', $absence->id)
+            ->with('signature_link', $link)
+            ->with('status', 'Link firma generato. Copialo e invialo al firmatario.');
     }
 
     public function downloadSignature(Request $request, int $id): Response
@@ -326,8 +328,9 @@ class StudentAbsenceController extends Controller
         }
 
         $absolutePath = $disk->path($absence->signature_file_path);
+        $mimeType = $disk->mimeType($absence->signature_file_path) ?: 'image/png';
         return response()->file($absolutePath, [
-            'Content-Type' => 'application/pdf',
+            'Content-Type' => $mimeType,
         ]);
     }
 

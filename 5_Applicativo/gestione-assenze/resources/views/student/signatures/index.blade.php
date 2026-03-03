@@ -63,7 +63,6 @@
                                     <th class="px-4 py-3 text-left font-medium">Minuti</th>
                                     <th class="px-4 py-3 text-left font-medium">Firma</th>
                                     <th class="px-4 py-3 text-left font-medium">Data firma</th>
-                                    <th class="px-4 py-3 text-right font-medium">PDF</th>
                                     <th class="px-4 py-3 text-right font-medium">Dettaglio</th>
                                 </tr>
                             </thead>
@@ -85,18 +84,6 @@
                                         </td>
                                         <td class="px-4 py-3 text-slate-700">
                                             {{ $delay->signed_at ? $delay->signed_at->format('d.m.Y H:i') : '-' }}
-                                        </td>
-                                        <td class="px-4 py-3 text-right">
-                                            @if ($delay->signature_file_path)
-                                                <div class="flex justify-end">
-                                                    <iframe
-                                                        src="{{ route('student.delays.signature.download', $delay->id) }}"
-                                                        class="h-20 w-28 rounded border border-slate-200 bg-white"
-                                                    ></iframe>
-                                                </div>
-                                            @else
-                                                <span class="text-xs text-slate-400">-</span>
-                                            @endif
                                         </td>
                                         <td class="px-4 py-3 text-right">
                                             <a href="{{ route('student.delays.show', $delay->id) }}" class="text-sm font-medium text-blue-700 hover:text-blue-900">Apri</a>
@@ -125,12 +112,6 @@
                                     </span>
                                     @if ($delay->signed_at)
                                         <span class="text-slate-500">{{ $delay->signed_at->format('d.m.Y H:i') }}</span>
-                                    @endif
-                                    @if ($delay->signature_file_path)
-                                        <iframe
-                                            src="{{ route('student.delays.signature.download', $delay->id) }}"
-                                            class="h-20 w-28 rounded border border-slate-200 bg-white"
-                                        ></iframe>
                                     @endif
                                 @else
                                     <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 font-medium text-amber-800">
@@ -166,8 +147,8 @@
                                     <th class="px-4 py-3 text-left font-medium">Periodo</th>
                                     <th class="px-4 py-3 text-left font-medium">Motivo</th>
                                     <th class="px-4 py-3 text-left font-medium">Stato</th>
-                                    <th class="px-4 py-3 text-left font-medium">Firma</th>
-                                    <th class="px-4 py-3 text-right font-medium">PDF</th>
+                                    <th class="px-4 py-3 text-left font-medium">Stato firma</th>
+                                    <th class="px-4 py-3 text-right font-medium">Firma</th>
                                     <th class="px-4 py-3 text-right font-medium">Dettaglio</th>
                                 </tr>
                             </thead>
@@ -176,6 +157,9 @@
                                     @php
                                         $statusLabel = $statusOptions[$absence->status] ?? $absence->status;
                                         $statusClass = $statusStyles[$absence->status] ?? 'border-slate-200 bg-slate-100 text-slate-700';
+                                        $signatureIsPdf = $absence->signature_file_path
+                                            ? \Illuminate\Support\Str::endsWith($absence->signature_file_path, '.pdf')
+                                            : false;
                                     @endphp
                                     <tr>
                                         <td class="px-4 py-3 text-slate-900">
@@ -206,12 +190,13 @@
                                             @endif
                                         </td>
                                         <td class="px-4 py-3 text-right">
-                                            @if ($absence->signature_file_path)
+                                            @if ($absence->signature_file_path && !$signatureIsPdf)
                                                 <div class="flex justify-end">
-                                                    <iframe
+                                                    <img
                                                         src="{{ route('student.absences.signature.download', $absence->id) }}"
-                                                        class="h-20 w-28 rounded border border-slate-200 bg-white"
-                                                    ></iframe>
+                                                        alt="Firma assenza"
+                                                        class="h-20 w-28 rounded border border-slate-200 bg-white object-contain"
+                                                    >
                                                 </div>
                                             @else
                                                 <span class="text-xs text-slate-400">-</span>
@@ -232,6 +217,9 @@
                         @php
                             $statusLabel = $statusOptions[$absence->status] ?? $absence->status;
                             $statusClass = $statusStyles[$absence->status] ?? 'border-slate-200 bg-slate-100 text-slate-700';
+                            $signatureIsPdf = $absence->signature_file_path
+                                ? \Illuminate\Support\Str::endsWith($absence->signature_file_path, '.pdf')
+                                : false;
                         @endphp
                         <div class="rounded-xl border border-slate-200 p-4">
                             <div class="flex items-start justify-between gap-3">
@@ -254,11 +242,12 @@
                                     @if ($absence->signed_at)
                                         <span class="text-slate-500">{{ $absence->signed_at->format('d.m.Y H:i') }}</span>
                                     @endif
-                                    @if ($absence->signature_file_path)
-                                        <iframe
+                                    @if ($absence->signature_file_path && !$signatureIsPdf)
+                                        <img
                                             src="{{ route('student.absences.signature.download', $absence->id) }}"
-                                            class="mt-2 h-20 w-28 rounded border border-slate-200 bg-white"
-                                        ></iframe>
+                                            alt="Firma assenza"
+                                            class="mt-2 h-20 w-28 rounded border border-slate-200 bg-white object-contain"
+                                        >
                                     @endif
                                 @elseif ($absence->status === 'WAITING_SIGNATURE')
                                     <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">

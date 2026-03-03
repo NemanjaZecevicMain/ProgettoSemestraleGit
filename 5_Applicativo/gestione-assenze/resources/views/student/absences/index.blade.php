@@ -72,8 +72,8 @@
                                     <th class="px-4 py-3 text-left font-medium">Stato</th>
                                     <th class="px-4 py-3 text-left font-medium">Ore</th>
                                     <th class="px-4 py-3 text-left font-medium">Note</th>
-                                    <th class="px-4 py-3 text-left font-medium">Firma</th>
-                                    <th class="px-4 py-3 text-right font-medium">PDF</th>
+                                    <th class="px-4 py-3 text-left font-medium">Stato firma</th>
+                                    <th class="px-4 py-3 text-right font-medium">Firma</th>
                                     <th class="px-4 py-3 text-right font-medium">Azione</th>
                                 </tr>
                             </thead>
@@ -82,6 +82,9 @@
                                     @php
                                         $statusLabel = $statusOptions[$absence->status] ?? $absence->status;
                                         $statusClass = $statusStyles[$absence->status] ?? 'border-slate-200 bg-slate-100 text-slate-700';
+                                        $signatureIsPdf = $absence->signature_file_path
+                                            ? \Illuminate\Support\Str::endsWith($absence->signature_file_path, '.pdf')
+                                            : false;
                                     @endphp
                                     <tr>
                                         <td class="px-4 py-3 text-slate-900">
@@ -135,12 +138,13 @@
                                             @endif
                                         </td>
                                         <td class="px-4 py-3 text-right">
-                                            @if ($absence->signature_file_path)
+                                            @if ($absence->signature_file_path && !$signatureIsPdf)
                                                 <div class="flex justify-end">
-                                                    <iframe
+                                                    <img
                                                         src="{{ route('student.absences.signature.download', $absence->id) }}"
-                                                        class="h-24 w-32 rounded border border-slate-200 bg-white"
-                                                    ></iframe>
+                                                        alt="Firma assenza"
+                                                        class="h-24 w-32 rounded border border-slate-200 bg-white object-contain"
+                                                    >
                                                 </div>
                                             @else
                                                 <span class="text-xs text-slate-400">-</span>
@@ -149,24 +153,10 @@
                                         <td class="px-4 py-3 text-right">
                                             <div class="inline-flex items-center gap-3">
                                                 <a href="{{ route('student.absences.show', $absence->id) }}" class="text-sm font-medium text-blue-700 hover:text-blue-900">Apri</a>
-                                                @if ($absence->signature_file_path)
+                                                @if ($absence->signature_file_path && !$signatureIsPdf)
                                                     <a href="{{ route('student.absences.signature.download', $absence->id) }}" class="text-xs font-medium text-slate-600 hover:text-slate-900" download>
-                                                        Scarica PDF
+                                                        Scarica firma
                                                     </a>
-                                                @endif
-                                                @if (!$absence->is_signed && $absence->status === 'WAITING_SIGNATURE')
-                                                    <form method="POST" action="{{ route('student.absences.sign', $absence->id) }}" enctype="multipart/form-data" class="inline-flex items-center gap-2">
-                                                        @csrf
-                                                        @method('PATCH')
-                                                        <input type="hidden" name="status" value="{{ $filters['status'] ?? 'all' }}">
-                                                        <input type="hidden" name="date_from" value="{{ $filters['date_from'] ?? '' }}">
-                                                        <input type="hidden" name="date_to" value="{{ $filters['date_to'] ?? '' }}">
-                                                        <input type="hidden" name="page" value="{{ request('page', 1) }}">
-                                                        <input type="file" name="signature_file" accept="application/pdf" class="block w-44 text-xs text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:text-slate-700" required>
-                                                        <button type="submit" class="inline-flex items-center rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-800">
-                                                            Carica PDF
-                                                        </button>
-                                                    </form>
                                                 @endif
                                             </div>
                                         </td>
@@ -182,6 +172,9 @@
                         @php
                             $statusLabel = $statusOptions[$absence->status] ?? $absence->status;
                             $statusClass = $statusStyles[$absence->status] ?? 'border-slate-200 bg-slate-100 text-slate-700';
+                            $signatureIsPdf = $absence->signature_file_path
+                                ? \Illuminate\Support\Str::endsWith($absence->signature_file_path, '.pdf')
+                                : false;
                         @endphp
                         <div class="rounded-xl border border-slate-200 p-4">
                             <div class="flex items-start justify-between gap-3">
@@ -217,27 +210,15 @@
                                     @if ($absence->signed_at)
                                         <span class="text-slate-500">{{ $absence->signed_at->format('d.m.Y H:i') }}</span>
                                     @endif
-                                    @if ($absence->signature_file_path)
+                                    @if ($absence->signature_file_path && !$signatureIsPdf)
                                         <a href="{{ route('student.absences.signature.download', $absence->id) }}" class="text-xs font-medium text-slate-600 hover:text-slate-900" download>
-                                            Scarica PDF
+                                            Scarica firma
                                         </a>
                                     @endif
                                 @elseif ($absence->status === 'WAITING_SIGNATURE')
                                     <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 font-medium text-amber-800">
                                         Da firmare
                                     </span>
-                                    <form method="POST" action="{{ route('student.absences.sign', $absence->id) }}" enctype="multipart/form-data" class="flex items-center gap-2">
-                                        @csrf
-                                        @method('PATCH')
-                                        <input type="hidden" name="status" value="{{ $filters['status'] ?? 'all' }}">
-                                        <input type="hidden" name="date_from" value="{{ $filters['date_from'] ?? '' }}">
-                                        <input type="hidden" name="date_to" value="{{ $filters['date_to'] ?? '' }}">
-                                        <input type="hidden" name="page" value="{{ request('page', 1) }}">
-                                        <input type="file" name="signature_file" accept="application/pdf" class="block w-40 text-xs text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:text-slate-700" required>
-                                        <button type="submit" class="inline-flex items-center rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-800">
-                                            Carica PDF
-                                        </button>
-                                    </form>
                                 @endif
                             </div>
                             <div class="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-600">

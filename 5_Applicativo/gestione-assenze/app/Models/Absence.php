@@ -48,6 +48,11 @@ class Absence extends Model
         return $this->hasMany(MedicalCertificate::class, 'absence_id');
     }
 
+    public function signatureConfirmation()
+    {
+        return $this->hasOne(SignatureConfirmation::class, 'absence_id');
+    }
+
     public function signedBy()
     {
         return $this->belongsTo(User::class, 'signed_by_user_id');

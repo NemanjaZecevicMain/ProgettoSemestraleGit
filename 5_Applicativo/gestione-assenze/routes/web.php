@@ -7,6 +7,7 @@ use App\Http\Controllers\Student\StudentDelayController;
 use App\Http\Controllers\Student\StudentSignatureController;
 use App\Http\Controllers\Student\StudentReportController;
 use App\Http\Controllers\Student\StudentCertificatesController;
+use App\Http\Controllers\SignatureConfirmationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -16,6 +17,11 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::get('/firma/assenza/{token}', [SignatureConfirmationController::class, 'show'])
+    ->name('public.absences.signature.show');
+Route::post('/firma/assenza/{token}', [SignatureConfirmationController::class, 'store'])
+    ->name('public.absences.signature.store');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -27,7 +33,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/assenze/segnala', [StudentAbsenceController::class, 'create'])->name('student.absences.create');
     Route::post('/assenze', [StudentAbsenceController::class, 'store'])->name('student.absences.store');
     Route::get('/assenze/{id}', [StudentAbsenceController::class, 'show'])->name('student.absences.show');
-    Route::patch('/assenze/{id}/firma', [StudentAbsenceController::class, 'sign'])->name('student.absences.sign');
+    Route::post('/assenze/{id}/firma/link', [StudentAbsenceController::class, 'generateSignatureLink'])
+        ->name('student.absences.signature.link');
     Route::get('/assenze/{id}/firma/pdf', [StudentAbsenceController::class, 'downloadSignature'])
         ->name('student.absences.signature.download');
     Route::post('/assenze/{id}/certificati/{slot}', [StudentAbsenceController::class, 'uploadCertificate'])
@@ -36,9 +43,6 @@ Route::middleware('auth')->group(function () {
         ->name('student.absences.certificates.download');
     Route::get('/ritardi', [StudentDelayController::class, 'index'])->name('student.delays.index');
     Route::get('/ritardi/{id}', [StudentDelayController::class, 'show'])->name('student.delays.show');
-    Route::patch('/ritardi/{id}/firma', [StudentDelayController::class, 'sign'])->name('student.delays.sign');
-    Route::get('/ritardi/{id}/firma/pdf', [StudentDelayController::class, 'downloadSignature'])
-        ->name('student.delays.signature.download');
     Route::get('/certificati', [StudentCertificatesController::class, 'index'])
         ->name('student.certificates.index');
     Route::get('/report-mensili', [StudentReportController::class, 'index'])
