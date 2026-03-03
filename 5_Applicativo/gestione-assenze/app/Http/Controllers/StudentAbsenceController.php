@@ -12,6 +12,8 @@ use Illuminate\View\View;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 use App\Models\SignatureConfirmation;
+use App\Mail\AbsenceSignatureLinkMail;
+use Illuminate\Support\Facades\Mail;
 
 class StudentAbsenceController extends Controller
 {
@@ -176,8 +178,24 @@ class StudentAbsenceController extends Controller
             ->with('certificates', 'signatureConfirmation')
             ->firstOrFail();
 
+        $isAdult = $user->isAdult();
+        $canGenerateSignatureLink = $isAdult === true;
+        $signatureHint = null;
+
+        if ($isAdult === null) {
+            $signatureHint = 'Data di nascita mancante: impossibile determinare chi deve firmare.';
+            $canGenerateSignatureLink = false;
+        } elseif ($isAdult === false) {
+            $signatureHint = 'Firma a carico del tutore legale.';
+            $canGenerateSignatureLink = false;
+        } else {
+            $signatureHint = 'Firma a carico dello studente maggiorenne.';
+        }
+
         return view('student.absences.show', [
             'absence' => $absence,
+            'canGenerateSignatureLink' => $canGenerateSignatureLink,
+            'signatureHint' => $signatureHint,
         ]);
     }
 
@@ -281,6 +299,27 @@ class StudentAbsenceController extends Controller
                 ->with('status', 'Assenza non firmabile.');
         }
 
+        $isAdult = $user->isAdult();
+        if ($isAdult === null) {
+            return redirect()
+                ->route('student.absences.show', $absence->id)
+                ->with('status', 'Data di nascita mancante: impossibile determinare chi deve firmare.');
+        }
+
+        if (!$isAdult) {
+            if (!$user->guardian || $user->guardian->role !== 'GUARDIAN') {
+                return redirect()
+                    ->route('student.absences.show', $absence->id)
+                    ->with('status', 'Nessun tutore associato: impossibile generare il link firma.');
+            }
+        }
+
+        if (!$user->email) {
+            return redirect()
+                ->route('student.absences.show', $absence->id)
+                ->with('status', 'Email dello studente mancante: impossibile inviare il link firma.');
+        }
+
         $token = Str::random(64);
         $tokenHash = hash('sha256', $token);
         $expiresAt = now()->addDays(7);
@@ -300,10 +339,12 @@ class StudentAbsenceController extends Controller
 
         $link = route('public.absences.signature.show', $token);
 
+        Mail::to($user->email)->send(new AbsenceSignatureLinkMail($absence, $user, $user, $link));
+
         return redirect()
             ->route('student.absences.show', $absence->id)
-            ->with('signature_link', $link)
-            ->with('status', 'Link firma generato. Copialo e invialo al firmatario.');
+            ->with('signature_email', $user->email)
+            ->with('status', 'Link firma inviato via email.');
     }
 
     public function downloadSignature(Request $request, int $id): Response

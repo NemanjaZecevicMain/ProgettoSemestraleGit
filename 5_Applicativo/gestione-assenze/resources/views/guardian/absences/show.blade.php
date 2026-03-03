@@ -31,7 +31,7 @@
                 <h1 class="text-2xl font-semibold text-slate-900">Dettaglio assenza</h1>
                 <p class="text-sm text-slate-500">Riepilogo completo della richiesta.</p>
             </div>
-            <a href="{{ route('student.absences.index') }}" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:border-slate-300">
+            <a href="{{ route('guardian.absences.index') }}" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:border-slate-300">
                 Torna alla lista
             </a>
         </div>
@@ -62,6 +62,12 @@
             </div>
 
             <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                    <div class="text-xs uppercase tracking-wider text-slate-500">Studente</div>
+                    <div class="mt-2 text-sm font-medium text-slate-900">
+                        {{ $absence->student?->name ?? '—' }}
+                    </div>
+                </div>
                 <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
                     <div class="text-xs uppercase tracking-wider text-slate-500">Periodo</div>
                     <div class="mt-2 text-sm font-medium text-slate-900">
@@ -106,8 +112,12 @@
                     <div>
                         <h2 class="text-lg font-semibold text-slate-900">Firma</h2>
                         <p class="text-sm text-slate-500">Genera un link per firmare direttamente online.</p>
-                        @if ($signatureHint)
-                            <p class="mt-1 text-xs text-slate-400">{{ $signatureHint }}</p>
+                        @if ($studentIsAdult === true)
+                            <p class="mt-1 text-xs text-slate-400">Lo studente è maggiorenne: la firma è a suo carico.</p>
+                        @elseif ($studentIsAdult === null)
+                            <p class="mt-1 text-xs text-slate-400">Data di nascita mancante: impossibile determinare chi deve firmare.</p>
+                        @else
+                            <p class="mt-1 text-xs text-slate-400">Firma a carico del tutore legale.</p>
                         @endif
                     </div>
                     @if (!$absence->is_signed && $absence->status !== 'WAITING_SIGNATURE')
@@ -121,17 +131,11 @@
                         @if ($absence->is_signed)
                             <div class="mt-3 text-sm text-emerald-700">Firma completata.</div>
                         @elseif ($absence->status === 'WAITING_SIGNATURE')
-                            @if ($canGenerateSignatureLink)
-                                <p class="mt-2 text-sm text-slate-600">
-                                    Clicca per inviare il link di firma via email. Per motivi di sicurezza il link non viene mostrato a schermo.
-                                </p>
-                            @else
-                                <p class="mt-2 text-sm text-slate-600">
-                                    La firma è a carico del tutore legale.
-                                </p>
-                            @endif
-                            @if ($canGenerateSignatureLink)
-                                <form method="POST" action="{{ route('student.absences.signature.link', $absence->id) }}" class="mt-3 flex flex-col gap-3">
+                            <p class="mt-2 text-sm text-slate-600">
+                                Clicca per inviare il link di firma via email. Per motivi di sicurezza il link non viene mostrato a schermo.
+                            </p>
+                            @if ($studentIsAdult === false)
+                                <form method="POST" action="{{ route('guardian.absences.signature.link', $absence->id) }}" class="mt-3 flex flex-col gap-3">
                                     @csrf
                                     <button type="submit" class="inline-flex w-fit items-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800">
                                         Genera link firma
@@ -159,12 +163,12 @@
                         <div class="text-xs uppercase tracking-wider text-slate-500">Anteprima firma</div>
                         @if ($absence->signature_file_path && !$signatureIsPdf)
                             <img
-                                src="{{ route('student.absences.signature.download', $absence->id) }}"
+                                src="{{ route('guardian.absences.signature.download', $absence->id) }}"
                                 alt="Firma assenza"
                                 class="mt-3 h-64 w-full rounded border border-slate-200 bg-white object-contain"
                             >
                             <div class="mt-3">
-                                <a href="{{ route('student.absences.signature.download', $absence->id) }}" class="text-sm font-medium text-blue-700 hover:text-blue-900" download>
+                                <a href="{{ route('guardian.absences.signature.download', $absence->id) }}" class="text-sm font-medium text-blue-700 hover:text-blue-900" download>
                                     Scarica firma
                                 </a>
                             </div>
@@ -179,7 +183,7 @@
 
             <div class="mt-8">
                 <h2 class="text-lg font-semibold text-slate-900">Certificati medici</h2>
-                <p class="text-sm text-slate-500">Puoi caricare fino a 3 certificati PDF per questa assenza.</p>
+                <p class="text-sm text-slate-500">Documenti caricati dallo studente.</p>
 
                 <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
                     @for ($slot = 1; $slot <= 3; $slot++)
@@ -190,7 +194,7 @@
                             <div class="flex items-center justify-between">
                                 <div class="text-xs uppercase tracking-wider text-slate-500">Certificato {{ $slot }}</div>
                                 @if ($certificate)
-                                    <a href="{{ route('student.absences.certificates.download', [$absence->id, $slot]) }}" class="text-xs font-medium text-blue-700 hover:text-blue-900" download>
+                                    <a href="{{ route('guardian.absences.certificates.download', [$absence->id, $slot]) }}" class="text-xs font-medium text-blue-700 hover:text-blue-900" download>
                                         Scarica PDF
                                     </a>
                                 @endif
@@ -199,7 +203,7 @@
                             <div class="mt-3">
                                 @if ($certificate)
                                     <iframe
-                                        src="{{ route('student.absences.certificates.download', [$absence->id, $slot]) }}"
+                                        src="{{ route('guardian.absences.certificates.download', [$absence->id, $slot]) }}"
                                         class="h-40 w-full rounded border border-slate-200 bg-white"
                                     ></iframe>
                                 @else
@@ -208,14 +212,6 @@
                                     </div>
                                 @endif
                             </div>
-
-                            <form method="POST" action="{{ route('student.absences.certificates.upload', [$absence->id, $slot]) }}" enctype="multipart/form-data" class="mt-3 flex flex-col gap-2">
-                                @csrf
-                                <input type="file" name="certificate_file" accept="application/pdf" class="block text-sm text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:text-slate-700" required>
-                                <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-800">
-                                    {{ $certificate ? 'Sostituisci PDF' : 'Carica PDF' }}
-                                </button>
-                            </form>
                         </div>
                     @endfor
                 </div>

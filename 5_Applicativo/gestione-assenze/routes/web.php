@@ -7,6 +7,7 @@ use App\Http\Controllers\Student\StudentDelayController;
 use App\Http\Controllers\Student\StudentSignatureController;
 use App\Http\Controllers\Student\StudentReportController;
 use App\Http\Controllers\Student\StudentCertificatesController;
+use App\Http\Controllers\Guardian\GuardianAbsenceController;
 use App\Http\Controllers\SignatureConfirmationController;
 use Illuminate\Support\Facades\Route;
 
@@ -54,6 +55,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/report-mensili/{id}/pdf', [StudentReportController::class, 'download'])
         ->name('student.reports.download');
     Route::get('/stato-firme', [StudentSignatureController::class, 'index'])->name('student.signatures.index');
+
+    Route::get('/tutore/assenze', [GuardianAbsenceController::class, 'index'])->name('guardian.absences.index');
+    Route::get('/tutore/assenze/{id}', [GuardianAbsenceController::class, 'show'])->name('guardian.absences.show');
+    Route::post('/tutore/assenze/{id}/firma/link', [GuardianAbsenceController::class, 'generateSignatureLink'])
+        ->name('guardian.absences.signature.link');
+    Route::get('/tutore/assenze/{id}/firma/pdf', [GuardianAbsenceController::class, 'downloadSignature'])
+        ->name('guardian.absences.signature.download');
+    Route::get('/tutore/assenze/{id}/certificati/{slot}', [GuardianAbsenceController::class, 'downloadCertificate'])
+        ->name('guardian.absences.certificates.download');
 });
 
 require __DIR__.'/auth.php';

@@ -2,12 +2,9 @@
     <div class="flex flex-col gap-6">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <h1 class="text-2xl font-semibold text-slate-900">Le mie assenze</h1>
-                <p class="text-sm text-slate-500">Consulta lo storico delle tue assenze.</p>
+                <h1 class="text-2xl font-semibold text-slate-900">Assenze studenti</h1>
+                <p class="text-sm text-slate-500">Consulta lo storico delle assenze degli studenti assegnati.</p>
             </div>
-            <a href="{{ route('student.absences.create') }}" class="inline-flex items-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800">
-                Segnala assenza
-            </a>
         </div>
 
         @if (session('status'))
@@ -30,7 +27,7 @@
                     <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800">
                         Applica filtri
                     </button>
-                    <a href="{{ route('student.absences.index') }}" class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:border-slate-300">
+                    <a href="{{ route('guardian.absences.index') }}" class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:border-slate-300">
                         Reset
                     </a>
                 </div>
@@ -46,13 +43,13 @@
                         <table class="min-w-full divide-y divide-slate-200 text-sm">
                             <thead class="bg-slate-50 text-slate-500">
                                 <tr>
+                                    <th class="px-4 py-3 text-left font-medium">Studente</th>
                                     <th class="px-4 py-3 text-left font-medium">Periodo</th>
                                     <th class="px-4 py-3 text-left font-medium">Orari</th>
                                     <th class="px-4 py-3 text-left font-medium">Motivo</th>
                                     <th class="px-4 py-3 text-left font-medium">Ore</th>
                                     <th class="px-4 py-3 text-left font-medium">Note</th>
                                     <th class="px-4 py-3 text-left font-medium">Stato firma</th>
-                                    <th class="px-4 py-3 text-right font-medium">Firma</th>
                                     <th class="px-4 py-3 text-right font-medium">Azione</th>
                                 </tr>
                             </thead>
@@ -64,6 +61,7 @@
                                             : false;
                                     @endphp
                                     <tr>
+                                        <td class="px-4 py-3 text-slate-900">{{ $absence->student?->name ?? '—' }}</td>
                                         <td class="px-4 py-3 text-slate-900">
                                             {{ optional($absence->date_from)->format('d.m.Y') }} &rarr; {{ optional($absence->date_to)->format('d.m.Y') }}
                                         </td>
@@ -110,23 +108,10 @@
                                             @endif
                                         </td>
                                         <td class="px-4 py-3 text-right">
-                                            @if ($absence->signature_file_path && !$signatureIsPdf)
-                                                <div class="flex justify-end">
-                                                    <img
-                                                        src="{{ route('student.absences.signature.download', $absence->id) }}"
-                                                        alt="Firma assenza"
-                                                        class="h-24 w-32 rounded border border-slate-200 bg-white object-contain"
-                                                    >
-                                                </div>
-                                            @else
-                                                <span class="text-xs text-slate-400">-</span>
-                                            @endif
-                                        </td>
-                                        <td class="px-4 py-3 text-right">
                                             <div class="inline-flex items-center gap-3">
-                                                <a href="{{ route('student.absences.show', $absence->id) }}" class="text-sm font-medium text-blue-700 hover:text-blue-900">Apri</a>
+                                                <a href="{{ route('guardian.absences.show', $absence->id) }}" class="text-sm font-medium text-blue-700 hover:text-blue-900">Apri</a>
                                                 @if ($absence->signature_file_path && !$signatureIsPdf)
-                                                    <a href="{{ route('student.absences.signature.download', $absence->id) }}" class="text-xs font-medium text-slate-600 hover:text-slate-900" download>
+                                                    <a href="{{ route('guardian.absences.signature.download', $absence->id) }}" class="text-xs font-medium text-slate-600 hover:text-slate-900" download>
                                                         Scarica firma
                                                     </a>
                                                 @endif
@@ -150,6 +135,9 @@
                             <div class="flex items-start justify-between gap-3">
                                 <div>
                                     <div class="text-sm font-semibold text-slate-900">
+                                        {{ $absence->student?->name ?? '—' }}
+                                    </div>
+                                    <div class="mt-1 text-xs text-slate-500">
                                         {{ optional($absence->date_from)->format('d.m.Y') }} &rarr; {{ optional($absence->date_to)->format('d.m.Y') }}
                                     </div>
                                     <div class="mt-1 text-xs text-slate-500">
@@ -167,7 +155,7 @@
                                     </div>
                                     <div class="mt-1 text-sm text-slate-600">{{ $absence->reason }}</div>
                                 </div>
-                                <a href="{{ route('student.absences.show', $absence->id) }}" class="text-sm font-medium text-blue-700">Apri</a>
+                                <a href="{{ route('guardian.absences.show', $absence->id) }}" class="text-sm font-medium text-blue-700">Apri</a>
                             </div>
                             <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
                                 @if ($absence->is_signed)
@@ -178,7 +166,7 @@
                                         <span class="text-slate-500">{{ $absence->signed_at->format('d.m.Y H:i') }}</span>
                                     @endif
                                     @if ($absence->signature_file_path && !$signatureIsPdf)
-                                        <a href="{{ route('student.absences.signature.download', $absence->id) }}" class="text-xs font-medium text-slate-600 hover:text-slate-900" download>
+                                        <a href="{{ route('guardian.absences.signature.download', $absence->id) }}" class="text-xs font-medium text-slate-600 hover:text-slate-900" download>
                                             Scarica firma
                                         </a>
                                     @endif

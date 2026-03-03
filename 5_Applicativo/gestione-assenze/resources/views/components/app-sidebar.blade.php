@@ -22,7 +22,9 @@
             $isSignatures = request()->routeIs('student.signatures.*');
             $isReports = request()->routeIs('student.reports.*');
             $isCertificates = request()->routeIs('student.certificates.*');
+            $isGuardianAbsences = request()->routeIs('guardian.absences.*');
             $isStudent = auth()->user()?->role === 'STUDENT';
+            $isGuardian = auth()->user()?->role === 'GUARDIAN';
             $user = auth()->user();
         @endphp
 
@@ -58,20 +60,22 @@
                                 I miei ritardi
                             </a>
                         @endif
-                        <a href="{{ route('student.certificates.index') }}" class="{{ $isCertificates ? $activeLink : $inactiveLink }}">
-                            <svg class="{{ $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
-                                <rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
-                                <path d="M8 7h8M8 11h8M8 15h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                            Certificati
-                        </a>
-                        <a href="{{ route('student.reports.index') }}" class="{{ $isReports ? $activeLink : $inactiveLink }}">
-                            <svg class="{{ $isReports ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
-                                <path d="M4 4h16v16H4z" stroke="currentColor" stroke-width="2"/>
-                                <path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                            Report mensili
-                        </a>
+                        @if ($isStudent)
+                            <a href="{{ route('student.certificates.index') }}" class="{{ $isCertificates ? $activeLink : $inactiveLink }}">
+                                <svg class="{{ $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
+                                    <rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M8 7h8M8 11h8M8 15h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Certificati
+                            </a>
+                            <a href="{{ route('student.reports.index') }}" class="{{ $isReports ? $activeLink : $inactiveLink }}">
+                                <svg class="{{ $isReports ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
+                                    <path d="M4 4h16v16H4z" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Report mensili
+                            </a>
+                        @endif
                         <a href="{{ route('settings.index') }}" class="{{ $isSettings ? $activeLink : $inactiveLink }}">
                             <svg class="{{ $isSettings ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
                                 <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="currentColor" stroke-width="2"/>
@@ -79,6 +83,14 @@
                             </svg>
                             Impostazioni
                         </a>
+                        @if ($isGuardian)
+                            <a href="{{ route('guardian.absences.index') }}" class="{{ $isGuardianAbsences ? $activeLink : $inactiveLink }}">
+                                <svg class="{{ $isGuardianAbsences ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
+                                    <path d="M7 4h10a2 2 0 0 1 2 2v14l-7-3-7 3V6a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                Assenze studenti
+                            </a>
+                        @endif
                         @if ($isStudent)
                             <a href="{{ route('student.signatures.index') }}" class="{{ $isSignatures ? $activeLink : $inactiveLink }}">
                                 <svg class="{{ $isSignatures ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
