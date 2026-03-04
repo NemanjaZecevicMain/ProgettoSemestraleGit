@@ -74,5 +74,9 @@
             </tbody>
         </table>
     @endif
+
+    <h2>Firma</h2>
+    <div class="muted">Firma del genitore/tutore o dello studente maggiorenne:</div>
+    <div style="margin-top: 12px; border-bottom: 1px solid #9ca3af; height: 18px;"></div>
 </body>
 </html>

@@ -9,6 +9,8 @@ use App\Http\Controllers\Student\StudentReportController;
 use App\Http\Controllers\Student\StudentCertificatesController;
 use App\Http\Controllers\Guardian\GuardianAbsenceController;
 use App\Http\Controllers\SignatureConfirmationController;
+use App\Http\Controllers\Teacher\TeacherStudentController;
+use App\Http\Controllers\Teacher\TeacherClassController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -64,6 +66,11 @@ Route::middleware('auth')->group(function () {
         ->name('guardian.absences.signature.download');
     Route::get('/tutore/assenze/{id}/certificati/{slot}', [GuardianAbsenceController::class, 'downloadCertificate'])
         ->name('guardian.absences.certificates.download');
+
+    Route::get('/docente/studenti', [TeacherStudentController::class, 'index'])->name('teacher.students.index');
+    Route::get('/docente/studenti/{id}', [TeacherStudentController::class, 'show'])->name('teacher.students.show');
+    Route::get('/docente/classi', [TeacherClassController::class, 'index'])->name('teacher.classes.index');
+    Route::get('/docente/classi/{id}', [TeacherClassController::class, 'show'])->name('teacher.classes.show');
 });
 
 require __DIR__.'/auth.php';

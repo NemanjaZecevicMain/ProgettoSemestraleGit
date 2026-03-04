@@ -1,0 +1,2 @@
+aggiornato sistema firma report mensile --> ora viene inviata per email ed è presente campo firma.
+fatto parte del docente, che vede le sue classi e tutti gli studenti.

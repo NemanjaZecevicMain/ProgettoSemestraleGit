@@ -23,8 +23,11 @@
             $isReports = request()->routeIs('student.reports.*');
             $isCertificates = request()->routeIs('student.certificates.*');
             $isGuardianAbsences = request()->routeIs('guardian.absences.*');
+            $isTeacherStudents = request()->routeIs('teacher.students.*');
+            $isTeacherClasses = request()->routeIs('teacher.classes.*');
             $isStudent = auth()->user()?->role === 'STUDENT';
             $isGuardian = auth()->user()?->role === 'GUARDIAN';
+            $isTeacher = auth()->user()?->role === 'TEACHER';
             $user = auth()->user();
         @endphp
 
@@ -49,6 +52,24 @@
                                     <path d="M7 4h10a2 2 0 0 1 2 2v14l-7-3-7 3V6a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="2"/>
                                 </svg>
                                 Le mie assenze
+                            </a>
+                        @endif
+                        @if ($isTeacher)
+                            <a href="{{ route('teacher.students.index') }}" class="{{ $isTeacherStudents ? $activeLink : $inactiveLink }}">
+                                <svg class="{{ $isTeacherStudents ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
+                                    <path d="M8 7a4 4 0 1 0 0 8a4 4 0 0 0 0-8z" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M16 7a4 4 0 1 0 0 8a4 4 0 0 0 0-8z" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M3 20c0-3 2.7-5 6-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    <path d="M21 20c0-3-2.7-5-6-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Tutti gli studenti
+                            </a>
+                            <a href="{{ route('teacher.classes.index') }}" class="{{ $isTeacherClasses ? $activeLink : $inactiveLink }}">
+                                <svg class="{{ $isTeacherClasses ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
+                                    <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Le mie classi
                             </a>
                         @endif
                         @if ($isStudent)

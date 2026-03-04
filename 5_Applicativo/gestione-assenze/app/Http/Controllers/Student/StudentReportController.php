@@ -76,14 +76,18 @@ class StudentReportController extends Controller
             ]
         );
 
-        $this->emailReportToTeachers($user, $report, Storage::disk('public')->path($path));
+        $emailError = $this->emailReportToRecipient($user, $report, Storage::disk('public')->path($path));
+
+        $status = $emailError
+            ? 'Report caricato. Email non inviata: ' . $emailError
+            : 'Report caricato e inviato via email.';
 
         return redirect()
             ->route('student.reports.index')
-            ->with('status', 'Report caricato e inviato ai docenti.');
+            ->with('status', $status);
     }
 
-    public function generate(Request $request): Response
+    public function generate(Request $request): RedirectResponse
     {
         $user = $request->user();
         if (!$user || $user->role !== 'STUDENT') {
@@ -140,12 +144,15 @@ class StudentReportController extends Controller
             ]
         );
 
-        $this->emailReportToTeachers($user, $report, Storage::disk('public')->path($path));
+        $emailError = $this->emailReportToRecipient($user, $report, Storage::disk('public')->path($path));
 
-        return response()->file(Storage::disk('public')->path($path), [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
-        ]);
+        $status = $emailError
+            ? 'Report generato. Email non inviata: ' . $emailError
+            : 'Report generato e inviato via email.';
+
+        return redirect()
+            ->route('student.reports.index')
+            ->with('status', $status);
     }
 
     public function download(Request $request, int $id): Response
@@ -170,21 +177,34 @@ class StudentReportController extends Controller
         ]);
     }
 
-    private function emailReportToTeachers(User $student, MonthlyReport $report, string $absolutePath): void
+    private function emailReportToRecipient(User $student, MonthlyReport $report, string $absolutePath): ?string
     {
-        $emails = User::query()
-            ->where('role', 'TEACHER')
-            ->pluck('email')
-            ->filter()
-            ->all();
-
-        if (!$emails) {
-            return;
+        $adult = $student->isAdult();
+        if ($adult === null) {
+            return 'Data di nascita mancante: impossibile determinare il destinatario.';
         }
 
-        Mail::to($emails)->send(new MonthlyReportMail($student, $report, $absolutePath));
+        if ($adult) {
+            if (!$student->email) {
+                return 'Email dello studente mancante.';
+            }
+            $recipientEmail = $student->email;
+        } else {
+            $guardian = $student->guardian;
+            if (!$guardian || $guardian->role !== 'GUARDIAN') {
+                return 'Nessun tutore associato.';
+            }
+            if (!$guardian->email) {
+                return 'Email del tutore mancante.';
+            }
+            $recipientEmail = $guardian->email;
+        }
+
+        Mail::to($recipientEmail)->send(new MonthlyReportMail($student, $report, $absolutePath));
 
         $report->sent_at = now();
         $report->save();
+
+        return null;
     }
 }

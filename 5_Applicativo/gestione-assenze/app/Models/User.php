@@ -44,9 +44,19 @@ class User extends Authenticatable
         return $this->password_hash;
     }
 
+    public function setPasswordAttribute($value): void
+    {
+        $this->attributes['password_hash'] = $value;
+    }
+
     public function classroom()
     {
         return $this->belongsTo(Classroom::class, 'classroom_id');
+    }
+
+    public function taughtClassrooms()
+    {
+        return $this->belongsToMany(Classroom::class, 'classroom_teacher', 'teacher_id', 'classroom_id');
     }
 
     public function guardian()
