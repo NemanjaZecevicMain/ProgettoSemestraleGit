@@ -7,10 +7,12 @@ use App\Http\Controllers\Student\StudentDelayController;
 use App\Http\Controllers\Student\StudentSignatureController;
 use App\Http\Controllers\Student\StudentReportController;
 use App\Http\Controllers\Student\StudentCertificatesController;
+use App\Http\Controllers\Student\StudentAbsenceRequestController;
 use App\Http\Controllers\Guardian\GuardianAbsenceController;
 use App\Http\Controllers\SignatureConfirmationController;
 use App\Http\Controllers\Teacher\TeacherStudentController;
 use App\Http\Controllers\Teacher\TeacherClassController;
+use App\Http\Controllers\Approvals\AbsenceApprovalController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -33,6 +35,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::patch('/settings/description', [SettingsController::class, 'updateDescription'])->name('settings.description.update');
     Route::get('/assenze', [StudentAbsenceController::class, 'index'])->name('student.absences.index');
+    Route::get('/assenze/richieste', [StudentAbsenceRequestController::class, 'index'])->name('student.absence_requests.index');
     Route::get('/assenze/segnala', [StudentAbsenceController::class, 'create'])->name('student.absences.create');
     Route::post('/assenze', [StudentAbsenceController::class, 'store'])->name('student.absences.store');
     Route::get('/assenze/{id}', [StudentAbsenceController::class, 'show'])->name('student.absences.show');
@@ -71,6 +74,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/docente/studenti/{id}', [TeacherStudentController::class, 'show'])->name('teacher.students.show');
     Route::get('/docente/classi', [TeacherClassController::class, 'index'])->name('teacher.classes.index');
     Route::get('/docente/classi/{id}', [TeacherClassController::class, 'show'])->name('teacher.classes.show');
+
+    Route::get('/approvazioni/assenze', [AbsenceApprovalController::class, 'index'])
+        ->name('approvals.absences.index');
+    Route::post('/approvazioni/assenze/{id}/approva', [AbsenceApprovalController::class, 'approve'])
+        ->name('approvals.absences.approve');
+    Route::post('/approvazioni/assenze/{id}/rifiuta', [AbsenceApprovalController::class, 'reject'])
+        ->name('approvals.absences.reject');
 });
 
 require __DIR__.'/auth.php';

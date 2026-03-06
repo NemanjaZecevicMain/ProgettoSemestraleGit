@@ -13,7 +13,7 @@ class TeacherStudentController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'TEACHER') {
+        if (!$user || !$user->hasPermission('teacher.students.access')) {
             abort(403);
         }
 
@@ -72,7 +72,7 @@ class TeacherStudentController extends Controller
     public function show(Request $request, int $id): View
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'TEACHER') {
+        if (!$user || !$user->hasPermission('teacher.students.access')) {
             abort(403);
         }
 

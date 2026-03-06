@@ -22,12 +22,16 @@
             $isSignatures = request()->routeIs('student.signatures.*');
             $isReports = request()->routeIs('student.reports.*');
             $isCertificates = request()->routeIs('student.certificates.*');
+            $isAbsenceRequests = request()->routeIs('student.absence_requests.*');
             $isGuardianAbsences = request()->routeIs('guardian.absences.*');
             $isTeacherStudents = request()->routeIs('teacher.students.*');
             $isTeacherClasses = request()->routeIs('teacher.classes.*');
+            $isApprovals = request()->routeIs('approvals.absences.*');
             $isStudent = auth()->user()?->role === 'STUDENT';
             $isGuardian = auth()->user()?->role === 'GUARDIAN';
             $isTeacher = auth()->user()?->role === 'TEACHER';
+            $isCapolab = auth()->user()?->role === 'CAPOLAB';
+            $isDirezione = auth()->user()?->role === 'DIREZIONE';
             $user = auth()->user();
         @endphp
 
@@ -53,6 +57,13 @@
                                 </svg>
                                 Le mie assenze
                             </a>
+                            <a href="{{ route('student.absence_requests.index') }}" class="{{ $isAbsenceRequests ? $activeLink : $inactiveLink }}">
+                                <svg class="{{ $isAbsenceRequests ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
+                                    <path d="M4 5h16v14H4z" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M8 9h8M8 13h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Richieste assenza
+                            </a>
                         @endif
                         @if ($isTeacher)
                             <a href="{{ route('teacher.students.index') }}" class="{{ $isTeacherStudents ? $activeLink : $inactiveLink }}">
@@ -70,6 +81,15 @@
                                     <path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                 </svg>
                                 Le mie classi
+                            </a>
+                        @endif
+                        @if ($isCapolab || $isDirezione)
+                            <a href="{{ route('approvals.absences.index') }}" class="{{ $isApprovals ? $activeLink : $inactiveLink }}">
+                                <svg class="{{ $isApprovals ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
+                                    <path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M4 4h16v16H4z" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                Approvazioni assenze
                             </a>
                         @endif
                         @if ($isStudent)

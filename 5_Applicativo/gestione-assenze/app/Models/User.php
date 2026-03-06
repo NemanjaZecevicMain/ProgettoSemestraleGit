@@ -59,6 +59,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Classroom::class, 'classroom_teacher', 'teacher_id', 'classroom_id');
     }
 
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'role_user', 'user_id', 'role_id');
+    }
+
     public function guardian()
     {
         return $this->belongsTo(User::class, 'guardian_id');
@@ -96,5 +101,68 @@ class User extends Authenticatable
     {
         $adult = $this->isAdult();
         return $adult === null ? null : !$adult;
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->role === 'ADMIN') {
+            return true;
+        }
+
+        $hasAssignedRoles = $this->roles()->exists();
+
+        $hasPermission = $this->roles()
+            ->whereHas('permissions', function ($query) use ($permission) {
+                $query->where('name', $permission);
+            })
+            ->exists();
+
+        if ($hasPermission) {
+            return true;
+        }
+
+        // If this user has role assignments but not the required permission, deny.
+        if ($hasAssignedRoles) {
+            return false;
+        }
+
+        // Transitional fallback for legacy data where role_user is not aligned.
+        return $this->hasLegacyPermission($permission);
+    }
+
+    private function hasLegacyPermission(string $permission): bool
+    {
+        $legacyMap = [
+            'TEACHER' => [
+                'teacher.classes.access',
+                'teacher.students.access',
+            ],
+            'STUDENT' => [
+                'student.absences.access',
+                'student.delays.access',
+                'student.signatures.access',
+                'student.certificates.access',
+                'student.reports.access',
+            ],
+            'GUARDIAN' => [
+                'guardian.absences.access',
+            ],
+            'CAPOLAB' => [
+                'teacher.classes.access',
+                'teacher.students.access',
+                'capolab.absence_approvals.access',
+            ],
+            'DIREZIONE' => [
+                'teacher.classes.access',
+                'teacher.students.access',
+                'direzione.absence_approvals.access',
+            ],
+        ];
+
+        if (!$this->role || !isset($legacyMap[$this->role])) {
+            return false;
+        }
+
+        return in_array($permission, $legacyMap[$this->role], true);
     }
 }

@@ -20,7 +20,7 @@ class GuardianAbsenceController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'GUARDIAN') {
+        if (!$user || !$user->hasPermission('guardian.absences.access')) {
             abort(403);
         }
 
@@ -56,7 +56,7 @@ class GuardianAbsenceController extends Controller
     public function show(Request $request, int $id): View
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'GUARDIAN') {
+        if (!$user || !$user->hasPermission('guardian.absences.access')) {
             abort(403);
         }
 
@@ -79,7 +79,7 @@ class GuardianAbsenceController extends Controller
     public function generateSignatureLink(Request $request, int $id): RedirectResponse
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'GUARDIAN') {
+        if (!$user || !$user->hasPermission('guardian.absences.access')) {
             abort(403);
         }
 
@@ -146,7 +146,7 @@ class GuardianAbsenceController extends Controller
     public function downloadSignature(Request $request, int $id): Response
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'GUARDIAN') {
+        if (!$user || !$user->hasPermission('guardian.absences.access')) {
             abort(403);
         }
 
@@ -176,7 +176,7 @@ class GuardianAbsenceController extends Controller
     public function downloadCertificate(Request $request, int $id, int $slot): Response
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'GUARDIAN') {
+        if (!$user || !$user->hasPermission('guardian.absences.access')) {
             abort(403);
         }
 

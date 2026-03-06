@@ -12,7 +12,7 @@ class StudentDelayController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
+        if (!$user || !$user->hasPermission('student.delays.access')) {
             abort(403);
         }
 
@@ -56,7 +56,7 @@ class StudentDelayController extends Controller
     public function show(Request $request, int $id): View
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
+        if (!$user || !$user->hasPermission('student.delays.access')) {
             abort(403);
         }
 

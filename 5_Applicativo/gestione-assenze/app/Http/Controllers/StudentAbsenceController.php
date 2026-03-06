@@ -14,13 +14,14 @@ use Illuminate\Support\Str;
 use App\Models\SignatureConfirmation;
 use App\Mail\AbsenceSignatureLinkMail;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Carbon;
 
 class StudentAbsenceController extends Controller
 {
     public function index(Request $request): View
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
+        if (!$user || !$user->hasPermission('student.absences.access')) {
             abort(403);
         }
 
@@ -68,7 +69,7 @@ class StudentAbsenceController extends Controller
     public function create(Request $request): View
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
+        if (!$user || !$user->hasPermission('student.absences.access')) {
             abort(403);
         }
 
@@ -84,7 +85,7 @@ class StudentAbsenceController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
+        if (!$user || !$user->hasPermission('student.absences.access')) {
             abort(403);
         }
 
@@ -129,6 +130,13 @@ class StudentAbsenceController extends Controller
             }
         }
 
+        if (!$this->isRequestAtLeast24HoursBeforeStart($validated['date_from'], $startSlots)) {
+            return redirect()
+                ->back()
+                ->withErrors(['date_from' => 'La segnalazione va inviata almeno 24 ore prima dell\'inizio dell\'assenza.'])
+                ->withInput();
+        }
+
         $sameDay = $validated['date_from'] === $validated['date_to'];
         $endSlots = $validated['end_slot'] ?? [];
         if (!$sameDay && count($endSlots) === 0) {
@@ -168,7 +176,7 @@ class StudentAbsenceController extends Controller
     public function show(Request $request, int $id): View
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
+        if (!$user || !$user->hasPermission('student.absences.access')) {
             abort(403);
         }
 
@@ -203,7 +211,7 @@ class StudentAbsenceController extends Controller
     public function uploadCertificate(Request $request, int $id, int $slot): RedirectResponse
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
+        if (!$user || !$user->hasPermission('student.absences.access')) {
             abort(403);
         }
 
@@ -252,7 +260,7 @@ class StudentAbsenceController extends Controller
     public function downloadCertificate(Request $request, int $id, int $slot): Response
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
+        if (!$user || !$user->hasPermission('student.absences.access')) {
             abort(403);
         }
 
@@ -284,7 +292,7 @@ class StudentAbsenceController extends Controller
     public function generateSignatureLink(Request $request, int $id): RedirectResponse
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
+        if (!$user || !$user->hasPermission('student.absences.access')) {
             abort(403);
         }
 
@@ -350,7 +358,7 @@ class StudentAbsenceController extends Controller
     public function downloadSignature(Request $request, int $id): Response
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
+        if (!$user || !$user->hasPermission('student.absences.access')) {
             abort(403);
         }
 
@@ -401,5 +409,30 @@ class StudentAbsenceController extends Controller
             '15:45-16:30' => '15:45-16:30',
             '16:30-17:15' => '16:30-17:15',
         ];
+    }
+
+    private function isRequestAtLeast24HoursBeforeStart(string $dateFrom, array $startSlots): bool
+    {
+        if (count($startSlots) === 0) {
+            return false;
+        }
+
+        $startTimes = [];
+        foreach ($startSlots as $slot) {
+            $parts = explode('-', $slot);
+            if (count($parts) !== 2) {
+                continue;
+            }
+
+            $startTimes[] = trim($parts[0]);
+        }
+
+        if (count($startTimes) === 0) {
+            return false;
+        }
+
+        sort($startTimes);
+        $absenceStart = Carbon::parse($dateFrom . ' ' . $startTimes[0]);
+        return now()->addHours(24)->lessThanOrEqualTo($absenceStart);
     }
 }

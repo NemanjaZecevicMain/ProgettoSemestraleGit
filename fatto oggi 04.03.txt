@@ -1,2 +1,3 @@
-aggiornato sistema firma report mensile --> ora viene inviata per email ed è presente campo firma.
-fatto parte del docente, che vede le sue classi e tutti gli studenti.
+aggiornato tipo di controllo per accedere alle pagine (ora permessi e non piu ruoli utente)
+implementato pagine di approvazione e visulaizzazione con filtro di richieste di assenza degli studenti per capolab e direzione.
+implementato funzionante sistema di richiesta assenza studente

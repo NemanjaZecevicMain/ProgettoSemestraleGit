@@ -13,7 +13,7 @@ class StudentSignatureController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
+        if (!$user || !$user->hasPermission('student.signatures.access')) {
             abort(403);
         }
 

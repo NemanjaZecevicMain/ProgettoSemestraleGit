@@ -57,4 +57,16 @@ class Absence extends Model
     {
         return $this->belongsTo(User::class, 'signed_by_user_id');
     }
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'approved_by_user_id');
+    }
+
+    public function requiredApproverRole(): string
+    {
+        return $this->date_from && $this->date_to && $this->date_from->isSameDay($this->date_to)
+            ? 'CAPOLAB'
+            : 'DIREZIONE';
+    }
 }

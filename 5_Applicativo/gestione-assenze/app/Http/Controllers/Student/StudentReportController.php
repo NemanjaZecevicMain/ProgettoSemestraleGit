@@ -22,7 +22,7 @@ class StudentReportController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
+        if (!$user || !$user->hasPermission('student.reports.access')) {
             abort(403);
         }
 
@@ -39,7 +39,7 @@ class StudentReportController extends Controller
     public function upload(Request $request): RedirectResponse
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
+        if (!$user || !$user->hasPermission('student.reports.access')) {
             abort(403);
         }
 
@@ -90,7 +90,7 @@ class StudentReportController extends Controller
     public function generate(Request $request): RedirectResponse
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
+        if (!$user || !$user->hasPermission('student.reports.access')) {
             abort(403);
         }
 
@@ -158,7 +158,7 @@ class StudentReportController extends Controller
     public function download(Request $request, int $id): Response
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'STUDENT') {
+        if (!$user || !$user->hasPermission('student.reports.access')) {
             abort(403);
         }
 
