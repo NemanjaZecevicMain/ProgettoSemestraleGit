@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use App\Support\AuditLogger;
 
 class SignatureConfirmationController extends Controller
 {
@@ -128,6 +129,13 @@ class SignatureConfirmationController extends Controller
             $absence->signed_by_user_id = null;
             $absence->signature_file_path = $path;
             $absence->save();
+
+            AuditLogger::log(null, 'absence.signed', 'absence', $absence->id, [
+                'signer_name' => $confirmation->signer_name,
+                'signer_email' => $confirmation->signer_email,
+                'ip_address' => $confirmation->ip_address,
+                'signed_at' => optional($confirmation->signed_at)->format('Y-m-d H:i:s'),
+            ]);
         }
 
         return redirect()

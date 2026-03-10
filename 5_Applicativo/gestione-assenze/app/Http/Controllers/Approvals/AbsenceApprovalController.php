@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Approvals;
 
 use App\Http\Controllers\Controller;
 use App\Models\Absence;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -131,6 +132,12 @@ class AbsenceApprovalController extends Controller
         $absence->approved_at = now();
         $absence->status = $approved ? 'WAITING_SIGNATURE' : 'UNJUSTIFIED';
         $absence->save();
+
+        AuditLogger::log($user, $approved ? 'absence.approved' : 'absence.rejected', 'absence', $absence->id, [
+            'required_approver_role' => $requiredRole,
+            'status_after' => $absence->status,
+            'approved' => $approved,
+        ]);
 
         return redirect()
             ->route('approvals.absences.index')

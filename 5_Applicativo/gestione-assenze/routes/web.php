@@ -13,6 +13,7 @@ use App\Http\Controllers\SignatureConfirmationController;
 use App\Http\Controllers\Teacher\TeacherStudentController;
 use App\Http\Controllers\Teacher\TeacherClassController;
 use App\Http\Controllers\Approvals\AbsenceApprovalController;
+use App\Http\Controllers\Audit\AuditLogController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -81,6 +82,8 @@ Route::middleware('auth')->group(function () {
         ->name('approvals.absences.approve');
     Route::post('/approvazioni/assenze/{id}/rifiuta', [AbsenceApprovalController::class, 'reject'])
         ->name('approvals.absences.reject');
+    Route::get('/storico/audit', [AuditLogController::class, 'index'])
+        ->name('audit.logs.index');
 });
 
 require __DIR__.'/auth.php';

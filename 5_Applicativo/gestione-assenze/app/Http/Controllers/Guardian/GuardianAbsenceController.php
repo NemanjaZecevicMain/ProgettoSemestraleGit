@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Models\MedicalCertificate;
 use App\Mail\AbsenceSignatureLinkMail;
 use Illuminate\Support\Facades\Mail;
+use App\Support\AuditLogger;
 
 class GuardianAbsenceController extends Controller
 {
@@ -136,6 +137,12 @@ class GuardianAbsenceController extends Controller
         $link = route('public.absences.signature.show', $token);
 
         Mail::to($user->email)->send(new AbsenceSignatureLinkMail($absence, $absence->student, $user, $link));
+
+        AuditLogger::log($user, 'absence.signature_link_sent', 'absence', $absence->id, [
+            'recipient_email' => $user->email,
+            'recipient_role' => 'GUARDIAN',
+            'expires_at' => $expiresAt->format('Y-m-d H:i:s'),
+        ]);
 
         return redirect()
             ->route('guardian.absences.show', $absence->id)

@@ -27,12 +27,19 @@
             $isTeacherStudents = request()->routeIs('teacher.students.*');
             $isTeacherClasses = request()->routeIs('teacher.classes.*');
             $isApprovals = request()->routeIs('approvals.absences.*');
+            $isAuditLogs = request()->routeIs('audit.logs.*');
             $isStudent = auth()->user()?->role === 'STUDENT';
             $isGuardian = auth()->user()?->role === 'GUARDIAN';
             $isTeacher = auth()->user()?->role === 'TEACHER';
             $isCapolab = auth()->user()?->role === 'CAPOLAB';
             $isDirezione = auth()->user()?->role === 'DIREZIONE';
             $user = auth()->user();
+            $canViewAudit = $user
+                && (
+                    $user->hasPermission('teacher.classes.access')
+                    || $user->hasPermission('capolab.absence_approvals.access')
+                    || $user->hasPermission('direzione.absence_approvals.access')
+                );
         @endphp
 
         <div class="min-h-screen flex flex-col lg:flex-row">
@@ -90,6 +97,15 @@
                                     <path d="M4 4h16v16H4z" stroke="currentColor" stroke-width="2"/>
                                 </svg>
                                 Approvazioni assenze
+                            </a>
+                        @endif
+                        @if ($canViewAudit)
+                            <a href="{{ route('audit.logs.index') }}" class="{{ $isAuditLogs ? $activeLink : $inactiveLink }}">
+                                <svg class="{{ $isAuditLogs ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
+                                    <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Storico operazioni
                             </a>
                         @endif
                         @if ($isStudent)

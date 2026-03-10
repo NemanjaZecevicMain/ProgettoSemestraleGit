@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Absence;
 use App\Models\MedicalCertificate;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -13,8 +14,10 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 use App\Models\SignatureConfirmation;
 use App\Mail\AbsenceSignatureLinkMail;
+use App\Mail\AbsenceApprovalRequestMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Carbon;
+use App\Support\AuditLogger;
 
 class StudentAbsenceController extends Controller
 {
@@ -157,7 +160,7 @@ class StudentAbsenceController extends Controller
             }
         }
 
-        Absence::create([
+        $absence = Absence::create([
             'student_id' => $user->id,
             'date_from' => $validated['date_from'],
             'date_to' => $validated['date_to'],
@@ -167,6 +170,40 @@ class StudentAbsenceController extends Controller
             'status' => 'PENDING',
             'note' => $validated['note'] ?? null,
         ]);
+
+        AuditLogger::log($user, 'absence.created', 'absence', $absence->id, [
+            'reason' => $absence->reason,
+            'status' => $absence->status,
+            'date_from' => $absence->date_from?->format('Y-m-d'),
+            'date_to' => $absence->date_to?->format('Y-m-d'),
+            'time_from' => $absence->time_from,
+            'time_to' => $absence->time_to,
+        ]);
+
+        $targetRole = $absence->requiredApproverRole();
+        $approvalRecipients = $this->findApprovalRecipientsByRole($targetRole);
+        $approvalsUrl = route('approvals.absences.index');
+
+        if ($approvalRecipients->isNotEmpty()) {
+            foreach ($approvalRecipients as $recipient) {
+                Mail::to($recipient->email)->send(new AbsenceApprovalRequestMail(
+                    $absence,
+                    $user,
+                    $recipient,
+                    $approvalsUrl,
+                    $targetRole
+                ));
+            }
+
+            AuditLogger::log($user, 'absence.approval_notification_sent', 'absence', $absence->id, [
+                'target_role' => $targetRole,
+                'recipient_emails' => $approvalRecipients->pluck('email')->all(),
+            ]);
+        } else {
+            AuditLogger::log($user, 'absence.approval_notification_missing_recipients', 'absence', $absence->id, [
+                'target_role' => $targetRole,
+            ]);
+        }
 
         return redirect()
             ->route('student.absences.index')
@@ -244,13 +281,18 @@ class StudentAbsenceController extends Controller
         $path = $validated['certificate_file']
             ->store('certificates/absences/' . $absence->id, 'public');
 
-        MedicalCertificate::updateOrCreate(
+        $certificate = MedicalCertificate::updateOrCreate(
             ['absence_id' => $absence->id, 'slot' => $slot],
             [
                 'file_path' => $path,
                 'uploaded_at' => now(),
             ]
         );
+
+        AuditLogger::log($user, 'absence.certificate_uploaded', 'absence', $absence->id, [
+            'certificate_id' => $certificate->id,
+            'slot' => $slot,
+        ]);
 
         return redirect()
             ->route('student.absences.show', $absence->id)
@@ -349,6 +391,12 @@ class StudentAbsenceController extends Controller
 
         Mail::to($user->email)->send(new AbsenceSignatureLinkMail($absence, $user, $user, $link));
 
+        AuditLogger::log($user, 'absence.signature_link_sent', 'absence', $absence->id, [
+            'recipient_email' => $user->email,
+            'recipient_role' => 'STUDENT',
+            'expires_at' => $expiresAt->format('Y-m-d H:i:s'),
+        ]);
+
         return redirect()
             ->route('student.absences.show', $absence->id)
             ->with('signature_email', $user->email)
@@ -434,5 +482,21 @@ class StudentAbsenceController extends Controller
         sort($startTimes);
         $absenceStart = Carbon::parse($dateFrom . ' ' . $startTimes[0]);
         return now()->addHours(24)->lessThanOrEqualTo($absenceStart);
+    }
+
+    private function findApprovalRecipientsByRole(string $targetRole)
+    {
+        return User::query()
+            ->whereNotNull('email')
+            ->where(function ($query) use ($targetRole) {
+                $query->where('role', $targetRole)
+                    ->orWhereHas('roles', function ($roleQuery) use ($targetRole) {
+                        $roleQuery->where('name', $targetRole);
+                    });
+            })
+            ->orderBy('name')
+            ->get()
+            ->unique('id')
+            ->values();
     }
 }
