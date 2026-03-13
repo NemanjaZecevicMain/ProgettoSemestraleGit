@@ -1,0 +1,4 @@
+implementazione importazione classi da csv di gagi
+mettere in sicurezza credenziali account che manda email
+aggiornare schema E-R
+controllare discorso email di aggiornamento per passaggio da minorenne a maggiorenne

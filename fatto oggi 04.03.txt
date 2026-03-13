@@ -1,3 +1,2 @@
-aggiornato tipo di controllo per accedere alle pagine (ora permessi e non piu ruoli utente)
-implementato pagine di approvazione e visulaizzazione con filtro di richieste di assenza degli studenti per capolab e direzione.
-implementato funzionante sistema di richiesta assenza studente
+creato pagina di visualizzazione storico azioni per docente con tanto di filtri
+email a capolab/direzione in caso di richiesta congedo

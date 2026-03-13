@@ -17,7 +17,38 @@ return [
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
-            'password' => env('MAIL_PASSWORD'),
+            'password' => (function (): ?string {
+                $normalize = static function (?string $value): ?string {
+                    if (!is_string($value)) {
+                        return null;
+                    }
+
+                    $value = trim($value);
+                    if ($value === '') {
+                        return null;
+                    }
+
+                    // Gmail app passwords are often copied with spaces (xxxx xxxx xxxx xxxx).
+                    return preg_replace('/\s+/', '', $value);
+                };
+
+                $passwordFile = env('MAIL_PASSWORD_FILE');
+
+                if (is_string($passwordFile) && $passwordFile !== '') {
+                    $resolvedPath = $passwordFile;
+
+                    // Resolve relative paths from Laravel project root.
+                    if (!preg_match('/^(?:[A-Za-z]:\\\\|\\\\\\\\|\\/)/', $passwordFile)) {
+                        $resolvedPath = base_path($passwordFile);
+                    }
+
+                    if (is_file($resolvedPath)) {
+                        return $normalize((string) file_get_contents($resolvedPath));
+                    }
+                }
+
+                return $normalize(env('MAIL_PASSWORD'));
+            })(),
             'timeout' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],

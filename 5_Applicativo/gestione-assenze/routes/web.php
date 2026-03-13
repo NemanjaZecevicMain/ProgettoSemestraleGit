@@ -74,6 +74,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/docente/studenti', [TeacherStudentController::class, 'index'])->name('teacher.students.index');
     Route::get('/docente/studenti/{id}', [TeacherStudentController::class, 'show'])->name('teacher.students.show');
     Route::get('/docente/classi', [TeacherClassController::class, 'index'])->name('teacher.classes.index');
+    Route::post('/docente/classi/import', [TeacherClassController::class, 'importCsv'])->name('teacher.classes.import');
     Route::get('/docente/classi/{id}', [TeacherClassController::class, 'show'])->name('teacher.classes.show');
 
     Route::get('/approvazioni/assenze', [AbsenceApprovalController::class, 'index'])

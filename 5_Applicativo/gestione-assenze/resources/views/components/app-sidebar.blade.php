@@ -33,12 +33,16 @@
             $isTeacher = auth()->user()?->role === 'TEACHER';
             $isCapolab = auth()->user()?->role === 'CAPOLAB';
             $isDirezione = auth()->user()?->role === 'DIREZIONE';
+            $isAdmin = auth()->user()?->role === 'ADMIN';
             $user = auth()->user();
+            $canTeacherArea = $user && $user->hasPermission('teacher.classes.access');
+            $canCapolabApprovals = $user && $user->hasPermission('capolab.absence_approvals.access');
+            $canDirezioneApprovals = $user && $user->hasPermission('direzione.absence_approvals.access');
             $canViewAudit = $user
                 && (
-                    $user->hasPermission('teacher.classes.access')
-                    || $user->hasPermission('capolab.absence_approvals.access')
-                    || $user->hasPermission('direzione.absence_approvals.access')
+                    $canTeacherArea
+                    || $canCapolabApprovals
+                    || $canDirezioneApprovals
                 );
         @endphp
 
@@ -72,7 +76,7 @@
                                 Richieste assenza
                             </a>
                         @endif
-                        @if ($isTeacher)
+                        @if ($canTeacherArea)
                             <a href="{{ route('teacher.students.index') }}" class="{{ $isTeacherStudents ? $activeLink : $inactiveLink }}">
                                 <svg class="{{ $isTeacherStudents ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
                                     <path d="M8 7a4 4 0 1 0 0 8a4 4 0 0 0 0-8z" stroke="currentColor" stroke-width="2"/>
@@ -90,7 +94,7 @@
                                 Le mie classi
                             </a>
                         @endif
-                        @if ($isCapolab || $isDirezione)
+                        @if ($canCapolabApprovals || $canDirezioneApprovals)
                             <a href="{{ route('approvals.absences.index') }}" class="{{ $isApprovals ? $activeLink : $inactiveLink }}">
                                 <svg class="{{ $isApprovals ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
                                     <path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

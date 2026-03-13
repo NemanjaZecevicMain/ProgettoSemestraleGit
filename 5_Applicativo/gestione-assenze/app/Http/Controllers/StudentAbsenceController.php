@@ -18,6 +18,7 @@ use App\Mail\AbsenceApprovalRequestMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Carbon;
 use App\Support\AuditLogger;
+use Throwable;
 
 class StudentAbsenceController extends Controller
 {
@@ -183,22 +184,48 @@ class StudentAbsenceController extends Controller
         $targetRole = $absence->requiredApproverRole();
         $approvalRecipients = $this->findApprovalRecipientsByRole($targetRole);
         $approvalsUrl = route('approvals.absences.index');
+        $statusMessage = 'Assenza segnalata con successo.';
 
         if ($approvalRecipients->isNotEmpty()) {
+            $sentRecipientEmails = [];
+            $failedRecipientEmails = [];
+
             foreach ($approvalRecipients as $recipient) {
-                Mail::to($recipient->email)->send(new AbsenceApprovalRequestMail(
-                    $absence,
-                    $user,
-                    $recipient,
-                    $approvalsUrl,
-                    $targetRole
-                ));
+                try {
+                    Mail::to($recipient->email)->send(new AbsenceApprovalRequestMail(
+                        $absence,
+                        $user,
+                        $recipient,
+                        $approvalsUrl,
+                        $targetRole
+                    ));
+
+                    $sentRecipientEmails[] = $recipient->email;
+                } catch (Throwable $exception) {
+                    report($exception);
+
+                    $failedRecipientEmails[] = [
+                        'email' => $recipient->email,
+                        'error' => Str::limit($exception->getMessage(), 300),
+                    ];
+                }
             }
 
-            AuditLogger::log($user, 'absence.approval_notification_sent', 'absence', $absence->id, [
-                'target_role' => $targetRole,
-                'recipient_emails' => $approvalRecipients->pluck('email')->all(),
-            ]);
+            if (count($sentRecipientEmails) > 0) {
+                AuditLogger::log($user, 'absence.approval_notification_sent', 'absence', $absence->id, [
+                    'target_role' => $targetRole,
+                    'recipient_emails' => $sentRecipientEmails,
+                ]);
+            }
+
+            if (count($failedRecipientEmails) > 0) {
+                AuditLogger::log($user, 'absence.approval_notification_failed', 'absence', $absence->id, [
+                    'target_role' => $targetRole,
+                    'failed_recipients' => $failedRecipientEmails,
+                ]);
+
+                $statusMessage .= ' Notifica email non inviata: credenziali SMTP non valide o server email non raggiungibile.';
+            }
         } else {
             AuditLogger::log($user, 'absence.approval_notification_missing_recipients', 'absence', $absence->id, [
                 'target_role' => $targetRole,
@@ -207,7 +234,7 @@ class StudentAbsenceController extends Controller
 
         return redirect()
             ->route('student.absences.index')
-            ->with('status', 'Assenza segnalata con successo.');
+            ->with('status', $statusMessage);
     }
 
     public function show(Request $request, int $id): View
