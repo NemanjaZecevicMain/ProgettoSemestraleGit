@@ -17,30 +17,42 @@ class TeacherStudentController extends Controller
             abort(403);
         }
 
-        $filters = $request->only(['q', 'classroom_id', 'year', 'section']);
+        $canViewAll = $user->hasGlobalInstituteVisibility();
+        $filters = $request->only(['q', 'classroom_id', 'year', 'section', 'role']);
         if (!empty($filters['section'])) {
             $filters['section'] = strtoupper(trim($filters['section']));
         }
         if (!empty($filters['year'])) {
             $filters['year'] = (int) $filters['year'];
         }
+        if (!empty($filters['role'])) {
+            $filters['role'] = strtoupper(trim($filters['role']));
+        }
 
         $studentsQuery = User::query()
-            ->where('role', 'STUDENT')
             ->with('classroom');
 
         if (!empty($filters['q'])) {
             $q = trim($filters['q']);
             $studentsQuery->where(function ($query) use ($q) {
                 $query->where('name', 'like', '%' . $q . '%')
-                    ->orWhere('email', 'like', '%' . $q . '%');
+                    ->orWhere('email', 'like', '%' . $q . '%')
+                    ->orWhere('role', 'like', '%' . strtoupper($q) . '%');
             });
         }
 
-        if (!empty($filters['classroom_id'])) {
-            $studentsQuery->where('classroom_id', $filters['classroom_id']);
+        if (!$canViewAll) {
+            $classroomIds = $user->taughtClassrooms()->pluck('classroom.id');
+            $studentsQuery
+                ->where('role', 'STUDENT')
+                ->whereIn('classroom_id', $classroomIds);
+        } elseif (!empty($filters['role'])) {
+            $studentsQuery->where('role', $filters['role']);
         }
 
+        if (!empty($filters['classroom_id'])) {
+            $studentsQuery->where('classroom_id', (int) $filters['classroom_id']);
+        }
         if (!empty($filters['year']) || !empty($filters['section'])) {
             $studentsQuery->whereHas('classroom', function ($query) use ($filters) {
                 if (!empty($filters['year'])) {
@@ -56,7 +68,11 @@ class TeacherStudentController extends Controller
             ->orderBy('name')
             ->get();
 
-        $classrooms = Classroom::query()
+        $classroomsQuery = $canViewAll
+            ? Classroom::query()
+            : $user->taughtClassrooms();
+
+        $classrooms = $classroomsQuery
             ->orderBy('year')
             ->orderBy('section')
             ->orderBy('name')
@@ -66,6 +82,7 @@ class TeacherStudentController extends Controller
             'students' => $students,
             'filters' => $filters,
             'classrooms' => $classrooms,
+            'canViewAllUsers' => $canViewAll,
         ]);
     }
 
@@ -76,14 +93,23 @@ class TeacherStudentController extends Controller
             abort(403);
         }
 
-        $student = User::query()
+        $studentQuery = User::query()
             ->where('id', $id)
-            ->where('role', 'STUDENT')
             ->with('classroom', 'guardian')
-            ->firstOrFail();
+            ->orderBy('name');
+
+        if (!$user->hasGlobalInstituteVisibility()) {
+            $classroomIds = $user->taughtClassrooms()->pluck('classroom.id');
+            $studentQuery
+                ->where('role', 'STUDENT')
+                ->whereIn('classroom_id', $classroomIds);
+        }
+
+        $student = $studentQuery->firstOrFail();
 
         return view('teacher.students.show', [
             'student' => $student,
+            'canViewAllUsers' => $user->hasGlobalInstituteVisibility(),
         ]);
     }
 }

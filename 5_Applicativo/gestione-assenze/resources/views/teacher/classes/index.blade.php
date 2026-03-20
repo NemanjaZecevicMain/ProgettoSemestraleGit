@@ -1,8 +1,10 @@
 <x-app-sidebar>
     <div class="flex flex-col gap-6">
         <div>
-            <h1 class="text-2xl font-semibold text-slate-900">Le mie classi</h1>
-            <p class="text-sm text-slate-500">Classi assegnate al docente.</p>
+            <h1 class="text-2xl font-semibold text-slate-900">{{ $canViewAll ? 'Tutte le classi' : 'Le mie classi' }}</h1>
+            <p class="text-sm text-slate-500">
+                {{ $canViewAll ? 'Elenco completo delle classi dell\'istituto.' : 'Classi assegnate al docente.' }}
+            </p>
         </div>
 
         @if (session('status'))
@@ -52,7 +54,9 @@
 
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             @if ($classrooms->isEmpty())
-                <div class="text-sm text-slate-500">Nessuna classe assegnata.</div>
+                <div class="text-sm text-slate-500">
+                    {{ $canViewAll ? 'Nessuna classe presente.' : 'Nessuna classe assegnata.' }}
+                </div>
             @else
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200 text-sm">

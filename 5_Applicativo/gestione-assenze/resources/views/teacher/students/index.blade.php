@@ -1,12 +1,14 @@
 <x-app-sidebar>
     <div class="flex flex-col gap-6">
         <div>
-            <h1 class="text-2xl font-semibold text-slate-900">Tutti gli studenti</h1>
-            <p class="text-sm text-slate-500">Elenco completo degli studenti dell'istituto.</p>
+            <h1 class="text-2xl font-semibold text-slate-900">{{ $canViewAllUsers ? 'Tutti gli utenti' : 'I miei studenti' }}</h1>
+            <p class="text-sm text-slate-500">
+                {{ $canViewAllUsers ? 'Elenco completo degli utenti dell\'istituto.' : 'Elenco studenti delle classi assegnate al docente.' }}
+            </p>
         </div>
 
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <form method="GET" class="mb-5 grid grid-cols-1 gap-4 md:grid-cols-4">
+            <form method="GET" class="mb-5 grid grid-cols-1 gap-4 md:grid-cols-5">
                 <div class="flex flex-col gap-1">
                     <label for="q" class="text-xs font-medium text-slate-600">Nome o email</label>
                     <input
@@ -38,6 +40,24 @@
                     </select>
                 </div>
 
+                @if ($canViewAllUsers)
+                    <div class="flex flex-col gap-1">
+                        <label for="role" class="text-xs font-medium text-slate-600">Ruolo</label>
+                        <select
+                            id="role"
+                            name="role"
+                            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                        >
+                            <option value="">Tutti i ruoli</option>
+                            @foreach (['STUDENT', 'TEACHER', 'CAPOLAB', 'DIREZIONE', 'ADMIN', 'GUARDIAN'] as $roleOption)
+                                <option value="{{ $roleOption }}" @selected(($filters['role'] ?? '') === $roleOption)>
+                                    {{ $roleOption }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+
                 <div class="flex flex-col gap-1">
                     <label for="year" class="text-xs font-medium text-slate-600">Anno</label>
                     <input
@@ -65,7 +85,7 @@
                     />
                 </div>
 
-                <div class="flex items-center gap-3 md:col-span-4">
+                <div class="flex items-center gap-3 md:col-span-5">
                     <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
                         Filtra
                     </button>
@@ -76,13 +96,16 @@
             </form>
 
             @if ($students->isEmpty())
-                <div class="text-sm text-slate-500">Nessuno studente presente.</div>
+                <div class="text-sm text-slate-500">{{ $canViewAllUsers ? 'Nessun utente presente.' : 'Nessuno studente presente.' }}</div>
             @else
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="bg-slate-50 text-slate-500">
                             <tr>
-                                <th class="px-4 py-3 text-left font-medium">Studente</th>
+                                <th class="px-4 py-3 text-left font-medium">{{ $canViewAllUsers ? 'Utente' : 'Studente' }}</th>
+                                @if ($canViewAllUsers)
+                                    <th class="px-4 py-3 text-left font-medium">Ruolo</th>
+                                @endif
                                 <th class="px-4 py-3 text-left font-medium">Classe</th>
                                 <th class="px-4 py-3 text-left font-medium">Email</th>
                                 <th class="px-4 py-3 text-right font-medium">Profilo</th>
@@ -97,6 +120,9 @@
                                 @endphp
                                 <tr>
                                     <td class="px-4 py-3 text-slate-900">{{ $student->name }}</td>
+                                    @if ($canViewAllUsers)
+                                        <td class="px-4 py-3 text-slate-700">{{ $student->role }}</td>
+                                    @endif
                                     <td class="px-4 py-3 text-slate-700">{{ $classroomLabel }}</td>
                                     <td class="px-4 py-3 text-slate-700">{{ $student->email }}</td>
                                     <td class="px-4 py-3 text-right">

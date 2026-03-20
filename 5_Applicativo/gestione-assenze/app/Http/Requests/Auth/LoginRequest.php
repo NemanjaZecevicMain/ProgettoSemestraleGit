@@ -49,6 +49,16 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        $user = Auth::user();
+        if ($user && $user->getAttribute('is_active') !== null && $user->is_active === false) {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Account disattivato. Contatta l\'amministratore.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

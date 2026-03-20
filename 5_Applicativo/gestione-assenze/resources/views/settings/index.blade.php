@@ -6,6 +6,7 @@
         'ADMIN' => 'Amministratore',
         'CAPOLAB' => 'Capolaboratorio',
         'DIREZIONE' => 'Direzione',
+        'GUARDIAN' => 'Tutore',
     ];
     $role = $roleLabels[$user->role] ?? $user->role;
     $classroomLabel = $user->classroom

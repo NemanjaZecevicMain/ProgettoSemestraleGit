@@ -19,16 +19,22 @@ class TeacherClassController extends Controller
             abort(403);
         }
 
-        $classrooms = $user->taughtClassrooms()
+        $classroomsQuery = $user->hasGlobalInstituteVisibility()
+            ? Classroom::query()
+            : $user->taughtClassrooms();
+
+        $classrooms = $classroomsQuery
             ->withCount([
                 'users as students_count' => fn ($query) => $query->where('role', 'STUDENT'),
             ])
             ->orderBy('year')
             ->orderBy('section')
+            ->orderBy('name')
             ->get();
 
         return view('teacher.classes.index', [
             'classrooms' => $classrooms,
+            'canViewAll' => $user->hasGlobalInstituteVisibility(),
         ]);
     }
 
@@ -39,9 +45,15 @@ class TeacherClassController extends Controller
             abort(403);
         }
 
-        $classroom = $user->taughtClassrooms()
-            ->where('classroom.id', $id)
-            ->firstOrFail();
+        if ($user->hasGlobalInstituteVisibility()) {
+            $classroom = Classroom::query()
+                ->where('id', $id)
+                ->firstOrFail();
+        } else {
+            $classroom = $user->taughtClassrooms()
+                ->where('classroom.id', $id)
+                ->firstOrFail();
+        }
 
         $students = $classroom->users()
             ->where('role', 'STUDENT')

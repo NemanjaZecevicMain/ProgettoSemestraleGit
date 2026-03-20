@@ -14,6 +14,10 @@ use App\Http\Controllers\Teacher\TeacherStudentController;
 use App\Http\Controllers\Teacher\TeacherClassController;
 use App\Http\Controllers\Approvals\AbsenceApprovalController;
 use App\Http\Controllers\Audit\AuditLogController;
+use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\AdminRolePermissionController;
+use App\Http\Controllers\Admin\AdminSystemSettingController;
+use App\Http\Controllers\Admin\AdminAuditManagementController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -85,6 +89,27 @@ Route::middleware('auth')->group(function () {
         ->name('approvals.absences.reject');
     Route::get('/storico/audit', [AuditLogController::class, 'index'])
         ->name('audit.logs.index');
+
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/', function () {
+            return redirect()->route('admin.users.index');
+        })->name('index');
+
+        Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+        Route::get('/users/{id}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
+        Route::patch('/users/{id}', [AdminUserController::class, 'update'])->name('users.update');
+        Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+
+        Route::get('/roles-permissions', [AdminRolePermissionController::class, 'index'])->name('roles-permissions.index');
+        Route::patch('/roles-permissions/{roleId}', [AdminRolePermissionController::class, 'update'])->name('roles-permissions.update');
+
+        Route::get('/settings', [AdminSystemSettingController::class, 'index'])->name('settings.index');
+        Route::patch('/settings', [AdminSystemSettingController::class, 'update'])->name('settings.update');
+
+        Route::get('/audit', [AdminAuditManagementController::class, 'index'])->name('audit.index');
+        Route::get('/audit/export', [AdminAuditManagementController::class, 'export'])->name('audit.export');
+        Route::delete('/audit/purge', [AdminAuditManagementController::class, 'purge'])->name('audit.purge');
+    });
 });
 
 require __DIR__.'/auth.php';

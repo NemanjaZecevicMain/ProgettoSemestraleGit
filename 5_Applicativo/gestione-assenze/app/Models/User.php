@@ -22,6 +22,7 @@ class User extends Authenticatable
         'password_hash',
         'role',
         'is_minor',
+        'is_active',
     ];
 
     protected $hidden = [
@@ -32,6 +33,7 @@ class User extends Authenticatable
     protected $casts = [
         'date_of_birth' => 'date',
         'is_minor' => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     public function getAuthPasswordName()
@@ -109,6 +111,12 @@ class User extends Authenticatable
             return true;
         }
 
+        // Keep legacy role column authoritative to avoid hidden access issues
+        // when role_user / permission_role data is not fully aligned.
+        if ($this->hasLegacyPermission($permission)) {
+            return true;
+        }
+
         $hasAssignedRoles = $this->roles()->exists();
 
         $hasPermission = $this->roles()
@@ -164,5 +172,10 @@ class User extends Authenticatable
         }
 
         return in_array($permission, $legacyMap[$this->role], true);
+    }
+
+    public function hasGlobalInstituteVisibility(): bool
+    {
+        return in_array($this->role, ['DIREZIONE', 'ADMIN'], true);
     }
 }

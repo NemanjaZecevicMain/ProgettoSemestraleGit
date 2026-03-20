@@ -28,6 +28,10 @@
             $isTeacherClasses = request()->routeIs('teacher.classes.*');
             $isApprovals = request()->routeIs('approvals.absences.*');
             $isAuditLogs = request()->routeIs('audit.logs.*');
+            $isAdminUsers = request()->routeIs('admin.users.*');
+            $isAdminRolesPermissions = request()->routeIs('admin.roles-permissions.*');
+            $isAdminSettings = request()->routeIs('admin.settings.*');
+            $isAdminAudit = request()->routeIs('admin.audit.*');
             $isStudent = auth()->user()?->role === 'STUDENT';
             $isGuardian = auth()->user()?->role === 'GUARDIAN';
             $isTeacher = auth()->user()?->role === 'TEACHER';
@@ -35,6 +39,7 @@
             $isDirezione = auth()->user()?->role === 'DIREZIONE';
             $isAdmin = auth()->user()?->role === 'ADMIN';
             $user = auth()->user();
+            $canViewAllInstituteData = $user && $user->hasGlobalInstituteVisibility();
             $canTeacherArea = $user && $user->hasPermission('teacher.classes.access');
             $canCapolabApprovals = $user && $user->hasPermission('capolab.absence_approvals.access');
             $canDirezioneApprovals = $user && $user->hasPermission('direzione.absence_approvals.access');
@@ -84,14 +89,14 @@
                                     <path d="M3 20c0-3 2.7-5 6-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                     <path d="M21 20c0-3-2.7-5-6-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                 </svg>
-                                Tutti gli studenti
+                                {{ $canViewAllInstituteData ? 'Tutti gli utenti' : 'I miei studenti' }}
                             </a>
                             <a href="{{ route('teacher.classes.index') }}" class="{{ $isTeacherClasses ? $activeLink : $inactiveLink }}">
                                 <svg class="{{ $isTeacherClasses ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
                                     <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
                                     <path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                 </svg>
-                                Le mie classi
+                                {{ $canViewAllInstituteData ? 'Tutte le classi' : 'Le mie classi' }}
                             </a>
                         @endif
                         @if ($canCapolabApprovals || $canDirezioneApprovals)
@@ -110,6 +115,41 @@
                                     <path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                 </svg>
                                 Storico operazioni
+                            </a>
+                        @endif
+                        @if ($isAdmin)
+                            <div class="mt-4 px-2 text-xs font-semibold uppercase tracking-wide text-blue-200/80">
+                                Amministrazione
+                            </div>
+                            <a href="{{ route('admin.users.index') }}" class="{{ $isAdminUsers ? $activeLink : $inactiveLink }}">
+                                <svg class="{{ $isAdminUsers ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
+                                    <path d="M8 7a4 4 0 1 0 0 8a4 4 0 0 0 0-8z" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M16 7a4 4 0 1 0 0 8a4 4 0 0 0 0-8z" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M3 20c0-3 2.7-5 6-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    <path d="M21 20c0-3-2.7-5-6-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Gestione utenti
+                            </a>
+                            <a href="{{ route('admin.roles-permissions.index') }}" class="{{ $isAdminRolesPermissions ? $activeLink : $inactiveLink }}">
+                                <svg class="{{ $isAdminRolesPermissions ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 0 1-4 0v-.1a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 0 1 0-4h.1a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 0 1 4 0v.1a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 0 1 0 4h-.1a1 1 0 0 0-.9.6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Ruoli e permessi
+                            </a>
+                            <a href="{{ route('admin.settings.index') }}" class="{{ $isAdminSettings ? $activeLink : $inactiveLink }}">
+                                <svg class="{{ $isAdminSettings ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
+                                    <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Configurazioni
+                            </a>
+                            <a href="{{ route('admin.audit.index') }}" class="{{ $isAdminAudit ? $activeLink : $inactiveLink }}">
+                                <svg class="{{ $isAdminAudit ? $activeIcon : $inactiveIcon }}" viewBox="0 0 24 24" fill="none">
+                                    <path d="M4 4h16v16H4z" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Audit avanzato
                             </a>
                         @endif
                         @if ($isStudent)
