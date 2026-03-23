@@ -16,18 +16,28 @@ use App\Mail\AbsenceSignatureLinkMail;
 use Illuminate\Support\Facades\Mail;
 use App\Support\AuditLogger;
 
+/**
+ * Controller per la gestione assenze lato tutore.
+ * Permette consultazione assenze dello studente associato e gestione firma.
+ */
 class GuardianAbsenceController extends Controller
 {
+    /**
+     * Mostra elenco assenze degli studenti associati al tutore autenticato.
+     */
     public function index(Request $request): View
     {
+        // Accesso riservato a utenti con permesso guardian dedicato.
         $user = $request->user();
         if (!$user || !$user->hasPermission('guardian.absences.access')) {
             abort(403);
         }
 
+        // Filtri data opzionali da query string.
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
 
+        // Query base: assenze degli studenti che hanno questo utente come tutore.
         $query = Absence::query()
             ->whereHas('student', function ($query) use ($user) {
                 $query->where('guardian_id', $user->id);
@@ -35,6 +45,7 @@ class GuardianAbsenceController extends Controller
             ->with('student')
             ->orderByDesc('date_from');
 
+        // Applica i filtri se presenti.
         if ($dateFrom) {
             $query->whereDate('date_from', '>=', $dateFrom);
         }
@@ -43,6 +54,7 @@ class GuardianAbsenceController extends Controller
             $query->whereDate('date_to', '<=', $dateTo);
         }
 
+        // Paginazione con conservazione dei filtri correnti.
         $absences = $query->paginate(10)->withQueryString();
 
         return view('guardian.absences.index', [
@@ -54,6 +66,9 @@ class GuardianAbsenceController extends Controller
         ]);
     }
 
+    /**
+     * Mostra il dettaglio di una singola assenza visibile al tutore.
+     */
     public function show(Request $request, int $id): View
     {
         $user = $request->user();
@@ -61,6 +76,7 @@ class GuardianAbsenceController extends Controller
             abort(403);
         }
 
+        // Recupera assenza solo se appartiene a studente associato al tutore.
         $absence = Absence::query()
             ->where('id', $id)
             ->whereHas('student', function ($query) use ($user) {
@@ -69,6 +85,7 @@ class GuardianAbsenceController extends Controller
             ->with('certificates', 'signatureConfirmation', 'student')
             ->firstOrFail();
 
+        // Determina se la firma e a carico studente (maggiorenne) o tutore.
         $studentIsAdult = $absence->student?->isAdult();
 
         return view('guardian.absences.show', [
@@ -77,6 +94,9 @@ class GuardianAbsenceController extends Controller
         ]);
     }
 
+    /**
+     * Genera e invia via email il link pubblico per la firma dell'assenza.
+     */
     public function generateSignatureLink(Request $request, int $id): RedirectResponse
     {
         $user = $request->user();
@@ -92,6 +112,7 @@ class GuardianAbsenceController extends Controller
             ->with('student')
             ->firstOrFail();
 
+        // Link generabile solo per assenze in attesa firma e non gia firmate.
         if ($absence->is_signed || $absence->status !== 'WAITING_SIGNATURE') {
             return redirect()
                 ->route('guardian.absences.show', $absence->id)
@@ -105,10 +126,11 @@ class GuardianAbsenceController extends Controller
                 ->with('status', 'Data di nascita mancante: impossibile determinare chi deve firmare.');
         }
 
+        // Se studente maggiorenne, la firma non puo essere gestita dal tutore.
         if ($studentIsAdult) {
             return redirect()
                 ->route('guardian.absences.show', $absence->id)
-                ->with('status', 'Lo studente è maggiorenne: la firma è a suo carico.');
+                ->with('status', 'Lo studente e maggiorenne: la firma e a suo carico.');
         }
 
         if (!$user->email) {
@@ -117,6 +139,7 @@ class GuardianAbsenceController extends Controller
                 ->with('status', 'Email del tutore mancante: impossibile inviare il link firma.');
         }
 
+        // Crea token casuale, salva solo hash e imposta scadenza 7 giorni.
         $token = Str::random(64);
         $tokenHash = hash('sha256', $token);
         $expiresAt = now()->addDays(7);
@@ -136,8 +159,10 @@ class GuardianAbsenceController extends Controller
 
         $link = route('public.absences.signature.show', $token);
 
+        // Invia email al tutore con il link di firma.
         Mail::to($user->email)->send(new AbsenceSignatureLinkMail($absence, $absence->student, $user, $link));
 
+        // Registra evento per tracciabilita.
         AuditLogger::log($user, 'absence.signature_link_sent', 'absence', $absence->id, [
             'recipient_email' => $user->email,
             'recipient_role' => 'GUARDIAN',
@@ -150,6 +175,9 @@ class GuardianAbsenceController extends Controller
             ->with('status', 'Link firma inviato via email.');
     }
 
+    /**
+     * Scarica il file della firma associata all'assenza.
+     */
     public function downloadSignature(Request $request, int $id): Response
     {
         $user = $request->user();
@@ -164,6 +192,7 @@ class GuardianAbsenceController extends Controller
             })
             ->firstOrFail();
 
+        // Se manca il path firma o il file fisico, ritorna 404.
         if (!$absence->signature_file_path) {
             abort(404);
         }
@@ -180,6 +209,9 @@ class GuardianAbsenceController extends Controller
         ]);
     }
 
+    /**
+     * Scarica il certificato medico PDF associato ad assenza e slot.
+     */
     public function downloadCertificate(Request $request, int $id, int $slot): Response
     {
         $user = $request->user();
@@ -187,6 +219,7 @@ class GuardianAbsenceController extends Controller
             abort(403);
         }
 
+        // Slot valido da 1 a 3.
         if ($slot < 1 || $slot > 3) {
             abort(404);
         }

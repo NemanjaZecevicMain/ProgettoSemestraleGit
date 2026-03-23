@@ -20,27 +20,39 @@ use Illuminate\Support\Carbon;
 use App\Support\AuditLogger;
 use Throwable;
 
+/**
+ * Controller dedicato alla gestione delle assenze lato studente.
+ * Copre listing, creazione, certificati, firma digitale e download allegati.
+ */
 class StudentAbsenceController extends Controller
 {
+    /**
+     * Mostra l'elenco assenze dello studente con filtri opzionali.
+     */
     public function index(Request $request): View
     {
+        // Accesso consentito solo a utenti con permesso specifico.
         $user = $request->user();
         if (!$user || !$user->hasPermission('student.absences.access')) {
             abort(403);
         }
 
+        // Filtri da query string.
         $status = $request->input('status', 'all');
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
 
+        // Query base sulle assenze dello studente autenticato.
         $query = Absence::query()
             ->where('student_id', $user->id)
             ->orderByDesc('date_from');
 
+        // Applica filtro stato quando valorizzato.
         if ($status !== 'all' && $status !== null && $status !== '') {
             $query->where('status', $status);
         }
 
+        // Applica filtri intervallo date.
         if ($dateFrom) {
             $query->whereDate('date_from', '>=', $dateFrom);
         }
@@ -49,8 +61,10 @@ class StudentAbsenceController extends Controller
             $query->whereDate('date_to', '<=', $dateTo);
         }
 
+        // Paginazione con mantenimento query string attuale.
         $absences = $query->paginate(10)->withQueryString();
 
+        // Mappa stati usata dalla vista per etichette leggibili.
         $statusOptions = [
             'PENDING' => 'In attesa',
             'WAITING_CERT' => 'Attesa certificato',
@@ -70,6 +84,9 @@ class StudentAbsenceController extends Controller
         ]);
     }
 
+    /**
+     * Mostra il form per la creazione di una nuova segnalazione di assenza.
+     */
     public function create(Request $request): View
     {
         $user = $request->user();
@@ -86,6 +103,9 @@ class StudentAbsenceController extends Controller
         ]);
     }
 
+    /**
+     * Valida e salva una nuova assenza, notificando eventuali approvatori.
+     */
     public function store(Request $request): RedirectResponse
     {
         $user = $request->user();
@@ -93,6 +113,7 @@ class StudentAbsenceController extends Controller
             abort(403);
         }
 
+        // Validazione payload principale (date, slot e motivazione).
         $validated = $request->validate([
             'date_from' => ['required', 'date'],
             'date_to' => ['required', 'date', 'after_or_equal:date_from'],
@@ -115,6 +136,7 @@ class StudentAbsenceController extends Controller
             'reason.required' => 'Seleziona una motivazione.',
         ]);
 
+        // Verifica che la motivazione sia tra quelle consentite.
         $reasonOptions = $this->reasonOptions();
         if (!array_key_exists($validated['reason'], $reasonOptions)) {
             return redirect()
@@ -123,6 +145,7 @@ class StudentAbsenceController extends Controller
                 ->withInput();
         }
 
+        // Verifica che gli slot del primo giorno siano validi.
         $slotOptions = $this->slotOptions();
         $startSlots = $validated['start_slot'] ?? [];
         foreach ($startSlots as $slot) {
@@ -134,6 +157,7 @@ class StudentAbsenceController extends Controller
             }
         }
 
+        // Regola business: richiesta inviata almeno 24h prima dell'inizio assenza.
         if (!$this->isRequestAtLeast24HoursBeforeStart($validated['date_from'], $startSlots)) {
             return redirect()
                 ->back()
@@ -143,6 +167,8 @@ class StudentAbsenceController extends Controller
 
         $sameDay = $validated['date_from'] === $validated['date_to'];
         $endSlots = $validated['end_slot'] ?? [];
+
+        // Se non e giornata singola, servono slot anche per l'ultimo giorno.
         if (!$sameDay && count($endSlots) === 0) {
             return redirect()
                 ->back()
@@ -150,6 +176,7 @@ class StudentAbsenceController extends Controller
                 ->withInput();
         }
 
+        // Verifica validita slot dell'ultimo giorno.
         if (!$sameDay) {
             foreach ($endSlots as $slot) {
                 if (!array_key_exists($slot, $slotOptions)) {
@@ -161,6 +188,7 @@ class StudentAbsenceController extends Controller
             }
         }
 
+        // Crea la segnalazione con stato iniziale PENDING.
         $absence = Absence::create([
             'student_id' => $user->id,
             'date_from' => $validated['date_from'],
@@ -172,6 +200,7 @@ class StudentAbsenceController extends Controller
             'note' => $validated['note'] ?? null,
         ]);
 
+        // Tracciamento audit della creazione.
         AuditLogger::log($user, 'absence.created', 'absence', $absence->id, [
             'reason' => $absence->reason,
             'status' => $absence->status,
@@ -181,6 +210,7 @@ class StudentAbsenceController extends Controller
             'time_to' => $absence->time_to,
         ]);
 
+        // Determina approvatore richiesto e prepara invio notifiche email.
         $targetRole = $absence->requiredApproverRole();
         $approvalRecipients = $this->findApprovalRecipientsByRole($targetRole);
         $approvalsUrl = route('approvals.absences.index');
@@ -202,6 +232,7 @@ class StudentAbsenceController extends Controller
 
                     $sentRecipientEmails[] = $recipient->email;
                 } catch (Throwable $exception) {
+                    // In caso di errore SMTP, salva diagnosi sintetica e prosegue.
                     report($exception);
 
                     $failedRecipientEmails[] = [
@@ -211,6 +242,7 @@ class StudentAbsenceController extends Controller
                 }
             }
 
+            // Audit separato per invii riusciti/falliti.
             if (count($sentRecipientEmails) > 0) {
                 AuditLogger::log($user, 'absence.approval_notification_sent', 'absence', $absence->id, [
                     'target_role' => $targetRole,
@@ -237,6 +269,9 @@ class StudentAbsenceController extends Controller
             ->with('status', $statusMessage);
     }
 
+    /**
+     * Mostra il dettaglio di una singola assenza dello studente.
+     */
     public function show(Request $request, int $id): View
     {
         $user = $request->user();
@@ -250,6 +285,7 @@ class StudentAbsenceController extends Controller
             ->with('certificates', 'signatureConfirmation')
             ->firstOrFail();
 
+        // Calcola chi deve firmare (studente maggiorenne o tutore).
         $isAdult = $user->isAdult();
         $canGenerateSignatureLink = $isAdult === true;
         $signatureHint = null;
@@ -271,7 +307,9 @@ class StudentAbsenceController extends Controller
         ]);
     }
 
-
+    /**
+     * Carica o sostituisce un certificato medico in uno slot specifico (1-3).
+     */
     public function uploadCertificate(Request $request, int $id, int $slot): RedirectResponse
     {
         $user = $request->user();
@@ -296,6 +334,7 @@ class StudentAbsenceController extends Controller
             'certificate_file.max' => 'Il file non puo superare 4MB.',
         ]);
 
+        // Se esiste gia un file per lo slot, viene eliminato prima della sostituzione.
         $existing = MedicalCertificate::query()
             ->where('absence_id', $absence->id)
             ->where('slot', $slot)
@@ -326,6 +365,9 @@ class StudentAbsenceController extends Controller
             ->with('status', 'Certificato caricato con successo.');
     }
 
+    /**
+     * Scarica il certificato medico PDF associato ad assenza e slot.
+     */
     public function downloadCertificate(Request $request, int $id, int $slot): Response
     {
         $user = $request->user();
@@ -358,6 +400,9 @@ class StudentAbsenceController extends Controller
         ]);
     }
 
+    /**
+     * Genera (o rigenera) un link di firma e lo invia via email allo studente.
+     */
     public function generateSignatureLink(Request $request, int $id): RedirectResponse
     {
         $user = $request->user();
@@ -370,6 +415,7 @@ class StudentAbsenceController extends Controller
             ->where('student_id', $user->id)
             ->firstOrFail();
 
+        // Firma consentita solo per assenze in attesa firma e non gia firmate.
         if ($absence->is_signed || $absence->status !== 'WAITING_SIGNATURE') {
             return redirect()
                 ->route('student.absences.show', $absence->id)
@@ -383,6 +429,7 @@ class StudentAbsenceController extends Controller
                 ->with('status', 'Data di nascita mancante: impossibile determinare chi deve firmare.');
         }
 
+        // Per studenti minorenni deve esistere un tutore valido associato.
         if (!$isAdult) {
             if (!$user->guardian || $user->guardian->role !== 'GUARDIAN') {
                 return redirect()
@@ -397,6 +444,7 @@ class StudentAbsenceController extends Controller
                 ->with('status', 'Email dello studente mancante: impossibile inviare il link firma.');
         }
 
+        // Crea token one-time (salvato hashato) con scadenza 7 giorni.
         $token = Str::random(64);
         $tokenHash = hash('sha256', $token);
         $expiresAt = now()->addDays(7);
@@ -430,6 +478,9 @@ class StudentAbsenceController extends Controller
             ->with('status', 'Link firma inviato via email.');
     }
 
+    /**
+     * Scarica il file della firma associato all'assenza.
+     */
     public function downloadSignature(Request $request, int $id): Response
     {
         $user = $request->user();
@@ -458,6 +509,9 @@ class StudentAbsenceController extends Controller
         ]);
     }
 
+    /**
+     * Restituisce elenco motivazioni selezionabili per la segnalazione.
+     */
     private function reasonOptions(): array
     {
         return [
@@ -469,6 +523,9 @@ class StudentAbsenceController extends Controller
         ];
     }
 
+    /**
+     * Restituisce elenco slot orari consentiti per l'assenza.
+     */
     private function slotOptions(): array
     {
         return [
@@ -486,6 +543,9 @@ class StudentAbsenceController extends Controller
         ];
     }
 
+    /**
+     * Verifica che l'invio richiesta sia almeno 24 ore prima del primo slot selezionato.
+     */
     private function isRequestAtLeast24HoursBeforeStart(string $dateFrom, array $startSlots): bool
     {
         if (count($startSlots) === 0) {
@@ -511,6 +571,9 @@ class StudentAbsenceController extends Controller
         return now()->addHours(24)->lessThanOrEqualTo($absenceStart);
     }
 
+    /**
+     * Recupera i destinatari approvatori in base al ruolo richiesto.
+     */
     private function findApprovalRecipientsByRole(string $targetRole)
     {
         return User::query()
