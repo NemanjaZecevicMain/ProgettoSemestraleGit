@@ -1,6 +1,7 @@
 @php
-    $user = auth()->user();
+    $user = $user ?? auth()->user();
     $isStudent = $user?->role === 'STUDENT';
+    $studentStats = $studentStats ?? null;
 @endphp
 
 <x-app-sidebar>
@@ -24,28 +25,47 @@
         </section>
 
         <section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <article class="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Ruolo</p>
-                <p class="mt-2 text-lg font-semibold text-blue-900">{{ $user->role }}</p>
-            </article>
-            <article class="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Email</p>
-                <p class="mt-2 truncate text-sm font-medium text-slate-900">{{ $user->email }}</p>
-            </article>
-            <article class="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Classe</p>
-                <p class="mt-2 text-sm font-medium text-slate-900">
-                    @if ($user->classroom)
-                        {{ $user->classroom->year . $user->classroom->name . ' ' . $user->classroom->section }}
-                    @else
-                        Non assegnata
-                    @endif
-                </p>
-            </article>
-            <article class="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Account</p>
-                <p class="mt-2 text-sm font-medium text-emerald-700">Attivo</p>
-            </article>
+            @if ($isStudent && $studentStats)
+                <article class="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+                    <p class="text-xs uppercase tracking-wide text-slate-500">Ore assenza totali</p>
+                    <p class="mt-2 text-lg font-semibold text-blue-900">{{ $studentStats['absence_hours'] }}</p>
+                </article>
+                <article class="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+                    <p class="text-xs uppercase tracking-wide text-slate-500">Assenze totali</p>
+                    <p class="mt-2 text-lg font-semibold text-blue-900">{{ $studentStats['absences_count'] }}</p>
+                </article>
+                <article class="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+                    <p class="text-xs uppercase tracking-wide text-slate-500">Ritardi totali</p>
+                    <p class="mt-2 text-lg font-semibold text-blue-900">{{ $studentStats['delays_count'] }}</p>
+                </article>
+                <article class="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+                    <p class="text-xs uppercase tracking-wide text-slate-500">Minuti ritardo</p>
+                    <p class="mt-2 text-lg font-semibold text-blue-900">{{ $studentStats['delay_minutes'] }}</p>
+                </article>
+            @else
+                <article class="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+                    <p class="text-xs uppercase tracking-wide text-slate-500">Ruolo</p>
+                    <p class="mt-2 text-lg font-semibold text-blue-900">{{ $user->role }}</p>
+                </article>
+                <article class="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+                    <p class="text-xs uppercase tracking-wide text-slate-500">Email</p>
+                    <p class="mt-2 truncate text-sm font-medium text-slate-900">{{ $user->email }}</p>
+                </article>
+                <article class="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+                    <p class="text-xs uppercase tracking-wide text-slate-500">Classe</p>
+                    <p class="mt-2 text-sm font-medium text-slate-900">
+                        @if ($user->classroom)
+                            {{ $user->classroom->year . $user->classroom->name . ' ' . $user->classroom->section }}
+                        @else
+                            Non assegnata
+                        @endif
+                    </p>
+                </article>
+                <article class="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+                    <p class="text-xs uppercase tracking-wide text-slate-500">Account</p>
+                    <p class="mt-2 text-sm font-medium text-emerald-700">Attivo</p>
+                </article>
+            @endif
         </section>
     </div>
 </x-app-sidebar>

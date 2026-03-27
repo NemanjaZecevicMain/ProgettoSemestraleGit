@@ -36,7 +36,7 @@
                                     value="{{ $permission->id }}"
                                     @checked(in_array($permission->id, old('permission_ids', $selected), true))
                                 />
-                                <span>{{ $permission->name }}</span>
+                                <span>{{ $permission->label ?: $permission->name }}</span>
                             </label>
                         @endforeach
                     </div>

@@ -20,7 +20,7 @@ use Illuminate\View\View;
 class AdminRolePermissionController extends Controller
 {
     use AuthorizesAdmin;
-
+ 
     /**
      * Mostra la pagina di gestione ruoli-permessi.
      * Recupera tutti i ruoli con i loro permessi associati
@@ -31,16 +31,19 @@ class AdminRolePermissionController extends Controller
         // Verifica che l'utente autenticato sia un amministratore
         $this->ensureAdmin($request->user());
 
+        $allowedRoles = $this->allowedRoleNames();
+
         return view('admin.roles-permissions.index', [
             // Recupera tutti i ruoli ordinati per nome
             // con i relativi permessi associati
             'roles' => Role::query()
                 ->with('permissions:id')
+                ->whereIn('name', $allowedRoles)
                 ->orderBy('name')
                 ->get(),
 
             // Recupera la lista completa dei permessi disponibili
-            'permissions' => Permission::query()->orderBy('name')->get(),
+            'permissions' => Permission::query()->orderBy('label')->orderBy('name')->get(),
         ]);
     }
 
@@ -56,7 +59,9 @@ class AdminRolePermissionController extends Controller
         $this->ensureAdmin($admin);
 
         // Recupera il ruolo dal database oppure genera errore se non esiste
-        $role = Role::query()->findOrFail($roleId);
+        $role = Role::query()
+            ->whereIn('name', $this->allowedRoleNames())
+            ->findOrFail($roleId);
 
         // Validazione dei dati ricevuti dal form
         $validated = $request->validate([
@@ -82,5 +87,13 @@ class AdminRolePermissionController extends Controller
         return redirect()
             ->route('admin.roles-permissions.index')
             ->with('status', 'Permessi aggiornati per il ruolo ' . $role->name . '.');
+    }
+
+    /**
+     * Ruoli effettivamente utilizzati dal sistema.
+     */
+    private function allowedRoleNames(): array
+    {
+        return ['ADMIN', 'CAPOLAB', 'DIREZIONE', 'GUARDIAN', 'STUDENT', 'TEACHER'];
     }
 }

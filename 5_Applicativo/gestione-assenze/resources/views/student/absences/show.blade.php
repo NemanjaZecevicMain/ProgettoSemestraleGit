@@ -22,6 +22,30 @@
     $signatureIsPdf = $absence->signature_file_path
         ? \Illuminate\Support\Str::endsWith($absence->signature_file_path, '.pdf')
         : false;
+    $startSlots = is_array($absence->time_from) ? $absence->time_from : [];
+    $endSlots = is_array($absence->time_to) ? $absence->time_to : [];
+    $hasDateRange = $absence->date_from && $absence->date_to;
+    $dateCursor = $hasDateRange ? $absence->date_from->copy() : null;
+    $lastDate = $hasDateRange ? $absence->date_to->copy() : null;
+    $skippedSchedule = [];
+
+    while ($dateCursor && $lastDate && $dateCursor->lte($lastDate)) {
+        if ($dateCursor->isSameDay($absence->date_from)) {
+            $slots = $startSlots;
+        } elseif ($dateCursor->isSameDay($absence->date_to)) {
+            $slots = $endSlots;
+        } else {
+            $slots = [];
+        }
+
+        $skippedSchedule[] = [
+            'date' => $dateCursor->copy(),
+            'slots' => $slots,
+            'full_day' => !$dateCursor->isSameDay($absence->date_from) && !$dateCursor->isSameDay($absence->date_to),
+        ];
+
+        $dateCursor->addDay();
+    }
 @endphp
 
 <x-app-sidebar>
@@ -69,28 +93,14 @@
                     </div>
                 </div>
                 <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                    <div class="text-xs uppercase tracking-wider text-slate-500">Orari</div>
+                    <div class="text-xs uppercase tracking-wider text-slate-500">Ore assegnate</div>
                     <div class="mt-2 text-sm font-medium text-slate-900">
-                        @php
-                            $startSlots = is_array($absence->time_from) ? $absence->time_from : [];
-                            $endSlots = is_array($absence->time_to) ? $absence->time_to : [];
-                        @endphp
-                        @if ($startSlots && $endSlots)
-                            {{ implode(', ', $startSlots) }} / {{ implode(', ', $endSlots) }}
-                        @elseif ($startSlots)
-                            {{ implode(', ', $startSlots) }}
-                        @else
-                            -
-                        @endif
+                        {{ $absence->hours_assigned ?? '-' }} <span class="text-xs font-normal text-slate-500">(1 ora = 45 minuti scolastici)</span>
                     </div>
                 </div>
                 <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
                     <div class="text-xs uppercase tracking-wider text-slate-500">Motivo</div>
                     <div class="mt-2 text-sm font-medium text-slate-900">{{ $absence->reason }}</div>
-                </div>
-                <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                    <div class="text-xs uppercase tracking-wider text-slate-500">Ore assegnate</div>
-                    <div class="mt-2 text-sm font-medium text-slate-900">{{ $absence->hours_assigned ?? '-' }}</div>
                 </div>
             </div>
 
@@ -98,6 +108,26 @@
                 <div class="text-xs uppercase tracking-wider text-slate-500">Note</div>
                 <div class="mt-2 text-sm text-slate-900">
                     {{ $absence->note ?: 'Nessuna nota disponibile.' }}
+                </div>
+            </div>
+
+            <div class="mt-6 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <div class="text-xs uppercase tracking-wider text-slate-500">Dettaglio ore saltate</div>
+                <div class="mt-3 space-y-2">
+                    @forelse ($skippedSchedule as $day)
+                        <div class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+                            <div class="font-medium text-slate-900">{{ $day['date']->format('d.m.Y') }}</div>
+                            @if (!empty($day['slots']))
+                                <div class="mt-1 text-slate-700">{{ implode(', ', $day['slots']) }}</div>
+                            @elseif ($day['full_day'])
+                                <div class="mt-1 text-slate-700">Giornata intera (orari non dettagliati).</div>
+                            @else
+                                <div class="mt-1 text-slate-500">Nessun orario specificato.</div>
+                            @endif
+                        </div>
+                    @empty
+                        <div class="text-sm text-slate-500">Nessun dettaglio orario disponibile.</div>
+                    @endforelse
                 </div>
             </div>
 

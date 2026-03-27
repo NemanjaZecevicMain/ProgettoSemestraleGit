@@ -3,7 +3,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h1 class="text-2xl font-semibold text-slate-900">Audit avanzato</h1>
-                <p class="text-sm text-slate-500">Filtro, esportazione CSV e pulizia storica.</p>
+                <p class="text-sm text-slate-500">Filtro e esportazione CSV.</p>
             </div>
             <a href="{{ route('admin.audit.export', request()->query()) }}" class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800">
                 Esporta CSV
@@ -56,21 +56,6 @@
                         Reset
                     </a>
                 </div>
-            </form>
-        </div>
-
-        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
-            <form method="POST" action="{{ route('admin.audit.purge') }}" onsubmit="return confirm('Confermi la pulizia del log audit?');" class="flex flex-col gap-3 md:flex-row md:items-end">
-                @csrf
-                @method('DELETE')
-                <div>
-                    <label for="before_date" class="mb-1 block text-xs font-medium text-amber-800">Elimina record precedenti a</label>
-                    <input id="before_date" name="before_date" type="date" required class="rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-slate-900">
-                    @error('before_date') <div class="mt-1 text-xs text-red-600">{{ $message }}</div> @enderror
-                </div>
-                <button type="submit" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">
-                    Esegui pulizia
-                </button>
             </form>
         </div>
 

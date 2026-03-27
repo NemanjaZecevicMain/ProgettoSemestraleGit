@@ -9,13 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $index = DB::select(
-            "SHOW INDEX FROM medical_certificate WHERE Key_name = ?",
-            ['medical_certificate_absence_id_unique']
-        );
+        $indexExists = $this->indexExists('medical_certificate', 'medical_certificate_absence_id_unique');
 
-        Schema::table('medical_certificate', function (Blueprint $table) use ($index) {
-            if ($index) {
+        Schema::table('medical_certificate', function (Blueprint $table) use ($indexExists) {
+            if ($indexExists) {
                 $table->dropUnique('medical_certificate_absence_id_unique');
             }
             if (!Schema::hasColumn('medical_certificate', 'slot')) {
@@ -36,5 +33,47 @@ return new class extends Migration
                 $table->unique('absence_id', 'medical_certificate_absence_id_unique');
             }
         });
+    }
+
+    private function indexExists(string $table, string $indexName): bool
+    {
+        $driver = DB::getDriverName();
+
+        if ($driver === 'sqlite') {
+            $indexes = DB::select("PRAGMA index_list('$table')");
+
+            foreach ($indexes as $index) {
+                if (($index->name ?? null) === $indexName) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if ($driver === 'pgsql') {
+            $index = DB::selectOne(
+                'SELECT 1 FROM pg_indexes WHERE schemaname = current_schema() AND tablename = ? AND indexname = ? LIMIT 1',
+                [$table, $indexName]
+            );
+
+            return (bool) $index;
+        }
+
+        if ($driver === 'sqlsrv') {
+            $index = DB::selectOne(
+                'SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(?) AND name = ?',
+                [$table, $indexName]
+            );
+
+            return (bool) $index;
+        }
+
+        $index = DB::selectOne(
+            "SHOW INDEX FROM {$table} WHERE Key_name = ?",
+            [$indexName]
+        );
+
+        return (bool) $index;
     }
 };

@@ -1,0 +1,4 @@
+tolto eliminazione record da audit avanzato admin
+sistemato visualizzazione ore di assenza
+sistemato ruoli in gestione utenti admin
+sempre li spiegato meglio cosa fa ogni opzione

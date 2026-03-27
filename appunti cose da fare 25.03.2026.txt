@@ -1,0 +1,3 @@
+assegnazione ruoli e permessi -> mettere selezione per utente per non creare confusione e spiegazione dei ruoli
+commentare input e output di funzioni ecc.
+gestione delle eccezioni

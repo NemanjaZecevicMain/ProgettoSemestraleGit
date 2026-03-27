@@ -6,7 +6,6 @@ use App\Http\Controllers\Admin\Concerns\AuthorizesAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Support\AuditLogger;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
@@ -16,7 +15,6 @@ use Illuminate\View\View;
  * Permette agli amministratori di:
  * - visualizzare i log
  * - esportarli in formato CSV
- * - eliminare i log più vecchi di una certa data
  */
 class AdminAuditManagementController extends Controller
 {
@@ -113,39 +111,6 @@ class AdminAuditManagementController extends Controller
             fclose($handle);
 
         }, 200, $headers);
-    }
-
-    /**
-     * Elimina i log di audit precedenti a una determinata data.
-     * Utilizzato per mantenere la tabella pulita e ridurre la dimensione del database.
-     */
-    public function purge(Request $request): RedirectResponse
-    {
-        $admin = $request->user();
-
-        // Controllo che l'utente sia amministratore
-        $this->ensureAdmin($admin);
-
-        // Validazione della data inserita nel form
-        $validated = $request->validate([
-            'before_date' => ['required', 'date'],
-        ]);
-
-        // Eliminazione dei log creati prima della data specificata
-        $deleted = AuditLog::query()
-            ->whereDate('created_at', '<', $validated['before_date'])
-            ->delete();
-
-        // Registrazione dell'operazione di pulizia nei log di audit
-        AuditLogger::log($admin, 'admin.audit.purged', 'audit_log', null, [
-            'before_date' => $validated['before_date'],
-            'deleted_rows' => $deleted,
-        ]);
-
-        // Redirect alla pagina dei log con messaggio di conferma
-        return redirect()
-            ->route('admin.audit.index')
-            ->with('status', "Pulizia completata: {$deleted} record eliminati.");
     }
 
     /**

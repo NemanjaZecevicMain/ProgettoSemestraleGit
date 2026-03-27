@@ -18,14 +18,43 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminRolePermissionController;
 use App\Http\Controllers\Admin\AdminSystemSettingController;
 use App\Http\Controllers\Admin\AdminAuditManagementController;
+use App\Models\Absence;
+use App\Models\Delay;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
+Route::get('/dashboard', function (Request $request) {
+    $user = $request->user();
+    if ($user) {
+        $user->loadMissing('classroom');
+    }
+
+    $studentStats = null;
+    if ($user && $user->role === 'STUDENT') {
+        $studentStats = [
+            'absence_hours' => (int) Absence::query()
+                ->where('student_id', $user->id)
+                ->sum('hours_assigned'),
+            'absences_count' => Absence::query()
+                ->where('student_id', $user->id)
+                ->count(),
+            'delays_count' => Delay::query()
+                ->where('student_id', $user->id)
+                ->count(),
+            'delay_minutes' => (int) Delay::query()
+                ->where('student_id', $user->id)
+                ->sum('minutes'),
+        ];
+    }
+
+    return view('dashboard', [
+        'user' => $user,
+        'studentStats' => $studentStats,
+    ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/firma/assenza/{token}', [SignatureConfirmationController::class, 'show'])
@@ -108,7 +137,6 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/audit', [AdminAuditManagementController::class, 'index'])->name('audit.index');
         Route::get('/audit/export', [AdminAuditManagementController::class, 'export'])->name('audit.export');
-        Route::delete('/audit/purge', [AdminAuditManagementController::class, 'purge'])->name('audit.purge');
     });
 });
 

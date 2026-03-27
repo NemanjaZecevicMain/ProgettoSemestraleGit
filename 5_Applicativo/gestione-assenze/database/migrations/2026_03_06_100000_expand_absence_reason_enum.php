@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         if (Schema::hasTable('absence') && Schema::hasColumn('absence', 'reason')) {
             DB::statement("
                 ALTER TABLE `absence`
@@ -37,6 +41,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         if (Schema::hasTable('absence') && Schema::hasColumn('absence', 'reason')) {
             DB::statement("
                 ALTER TABLE `absence`

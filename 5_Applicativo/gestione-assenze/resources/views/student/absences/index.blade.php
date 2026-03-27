@@ -47,9 +47,8 @@
                             <thead class="bg-slate-50 text-slate-500">
                                 <tr>
                                     <th class="px-4 py-3 text-left font-medium">Periodo</th>
-                                    <th class="px-4 py-3 text-left font-medium">Orari</th>
                                     <th class="px-4 py-3 text-left font-medium">Motivo</th>
-                                    <th class="px-4 py-3 text-left font-medium">Ore</th>
+                                    <th class="px-4 py-3 text-left font-medium">Ore (45 min)</th>
                                     <th class="px-4 py-3 text-left font-medium">Note</th>
                                     <th class="px-4 py-3 text-left font-medium">Stato firma</th>
                                     <th class="px-4 py-3 text-right font-medium">Firma</th>
@@ -66,19 +65,6 @@
                                     <tr>
                                         <td class="px-4 py-3 text-slate-900">
                                             {{ optional($absence->date_from)->format('d.m.Y') }} &rarr; {{ optional($absence->date_to)->format('d.m.Y') }}
-                                        </td>
-                                        <td class="px-4 py-3 text-slate-700">
-                                            @php
-                                                $startSlots = is_array($absence->time_from) ? $absence->time_from : [];
-                                                $endSlots = is_array($absence->time_to) ? $absence->time_to : [];
-                                            @endphp
-                                            @if ($startSlots && $endSlots)
-                                                {{ implode(', ', $startSlots) }} / {{ implode(', ', $endSlots) }}
-                                            @elseif ($startSlots)
-                                                {{ implode(', ', $startSlots) }}
-                                            @else
-                                                -
-                                            @endif
                                         </td>
                                         <td class="px-4 py-3 text-slate-700">{{ $absence->reason }}</td>
                                         <td class="px-4 py-3 text-slate-700">
@@ -152,19 +138,6 @@
                                     <div class="text-sm font-semibold text-slate-900">
                                         {{ optional($absence->date_from)->format('d.m.Y') }} &rarr; {{ optional($absence->date_to)->format('d.m.Y') }}
                                     </div>
-                                    <div class="mt-1 text-xs text-slate-500">
-                                        @php
-                                            $startSlots = is_array($absence->time_from) ? $absence->time_from : [];
-                                            $endSlots = is_array($absence->time_to) ? $absence->time_to : [];
-                                        @endphp
-                                        @if ($startSlots && $endSlots)
-                                            {{ implode(', ', $startSlots) }} / {{ implode(', ', $endSlots) }}
-                                        @elseif ($startSlots)
-                                            {{ implode(', ', $startSlots) }}
-                                        @else
-                                            -
-                                        @endif
-                                    </div>
                                     <div class="mt-1 text-sm text-slate-600">{{ $absence->reason }}</div>
                                 </div>
                                 <a href="{{ route('student.absences.show', $absence->id) }}" class="text-sm font-medium text-blue-700">Apri</a>
@@ -190,7 +163,7 @@
                             </div>
                             <div class="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-600">
                                 <div>
-                                    <div class="text-xs uppercase tracking-wider text-slate-400">Ore</div>
+                                    <div class="text-xs uppercase tracking-wider text-slate-400">Ore (45 min)</div>
                                     <div class="mt-1 text-slate-900">{{ $absence->hours_assigned ?? '-' }}</div>
                                 </div>
                                 <div>
